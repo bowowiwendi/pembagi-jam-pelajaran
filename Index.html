@@ -1090,7 +1090,7 @@
               Generate Jadwal Otomatis
             </h3>
           </div>
-          
+
           <div style="text-align: center; padding: 40px;">
             <span class="material-icons-round" style="font-size: 64px; color: var(--primary-color); margin-bottom: 16px;">
               schedule
@@ -1102,6 +1102,24 @@
             <button class="btn btn-primary btn-lg" onclick="generateJadwal()">
               <span class="material-icons-round">play_arrow</span>
               Generate Jadwal
+            </button>
+          </div>
+        </div>
+        
+        <div class="content-card">
+          <div class="content-card-header">
+            <h3 class="content-card-title">
+              <span class="material-icons-round">settings</span>
+              Pengaturan Data
+            </h3>
+          </div>
+          
+          <div style="padding: 20px; background: #fff3cd; border-radius: 8px; margin-bottom: 16px;">
+            <p style="margin-bottom: 12px;"><strong>⚠️ Data tidak muncul?</strong></p>
+            <p style="color: #666; margin-bottom: 12px;">Jika data guru, kelas, dan mapel tidak muncul, klik tombol di bawah untuk reset dan populate ulang data dari spreadsheet.</p>
+            <button class="btn btn-warning btn-sm" onclick="forceReloadData()" style="background: #ffc107; color: #000;">
+              <span class="material-icons-round">refresh</span>
+              Reset & Populate Data
             </button>
           </div>
         </div>
@@ -1626,54 +1644,89 @@
     function loadAllData() {
       showLoading('Memuat data...');
       
+      // Load semua data secara paralel dengan Promise-style
+      loadDashboardStats();
+      loadGuruData();
+    }
+    
+    function loadDashboardStats() {
       google.script.run
         .withSuccessHandler(function(stats) {
           updateDashboard(stats);
-          guruList = [];
-          kelasList = [];
-          mapelList = [];
-          
-          // Load guru
-          google.script.run
-            .withSuccessHandler(function(data) {
-              guruList = data;
-              // Load kelas
-              google.script.run
-                .withSuccessHandler(function(data) {
-                  kelasList = data;
-                  // Load mapel
-                  google.script.run
-                    .withSuccessHandler(function(data) {
-                      mapelList = data;
-                      // Load jadwal
-                      google.script.run
-                        .withSuccessHandler(function(data) {
-                          jadwalList = data;
-                          hideLoading();
-                          updateDashboardStats();
-                        })
-                        .withFailureHandler(hideLoading)
-                        .getJadwal();
-                    })
-                    .withFailureHandler(hideLoading)
-                    .getMapelList();
-                })
-                .withFailureHandler(hideLoading)
-                .getKelasList();
-            })
-            .withFailureHandler(hideLoading)
-            .getGuruList();
         })
         .withFailureHandler(function(error) {
-          hideLoading();
-          showToast('Gagal memuat data: ' + error, 'error');
+          console.error('Error loading dashboard stats:', error);
         })
         .getDashboardStats();
     }
     
+    function loadGuruData() {
+      google.script.run
+        .withSuccessHandler(function(data) {
+          guruList = data || [];
+          console.log('Guru loaded:', guruList.length);
+          loadKelasData();
+        })
+        .withFailureHandler(function(error) {
+          console.error('Error loading guru:', error);
+          guruList = [];
+          loadKelasData();
+        })
+        .getGuruList();
+    }
+    
+    function loadKelasData() {
+      google.script.run
+        .withSuccessHandler(function(data) {
+          kelasList = data || [];
+          console.log('Kelas loaded:', kelasList.length);
+          loadMapelData();
+        })
+        .withFailureHandler(function(error) {
+          console.error('Error loading kelas:', error);
+          kelasList = [];
+          loadMapelData();
+        })
+        .getKelasList();
+    }
+    
+    function loadMapelData() {
+      google.script.run
+        .withSuccessHandler(function(data) {
+          mapelList = data || [];
+          console.log('Mapel loaded:', mapelList.length);
+          loadJadwalData();
+        })
+        .withFailureHandler(function(error) {
+          console.error('Error loading mapel:', error);
+          mapelList = [];
+          loadJadwalData();
+        })
+        .getMapelList();
+    }
+    
+    function loadJadwalData() {
+      google.script.run
+        .withSuccessHandler(function(data) {
+          jadwalList = data || [];
+          console.log('Jadwal loaded:', jadwalList.length);
+          hideLoading();
+          updateDashboardStats();
+          renderGuruTable();
+          renderKelasTable();
+          renderMapelTable();
+        })
+        .withFailureHandler(function(error) {
+          console.error('Error loading jadwal:', error);
+          jadwalList = [];
+          hideLoading();
+        })
+        .getJadwal();
+    }
+    
     function refreshData() {
-      loadAllData();
-      showToast('Data berhasil diperbarui!', 'success');
+      forceReloadData();
+      showToast('Data sedang dimuat ulang...', 'info');
     }
     
     // ============================================================================
@@ -1701,7 +1754,9 @@
     function renderGuruTable() {
       const tbody = document.getElementById('guruTableBody');
       
-      if (guruList.length === 0) {
+      console.log('Rendering guru table, data:', guruList);
+
+      if (!guruList || guruList.length === 0) {
         tbody.innerHTML = `
           <tr>
             <td colspan="7" style="text-align: center;">
@@ -1715,13 +1770,13 @@
         `;
         return;
       }
-      
+
       tbody.innerHTML = guruList.map((guru, index) => `
         <tr>
           <td>${index + 1}</td>
           <td><strong>${guru.nama}</strong></td>
           <td><span class="badge ${guru.jenis === 'Guru Kelas' ? 'badge-success' : 'badge-info'}">${guru.jenis}</span></td>
-          <td>${guru.mapel}</td>
+          <td>${guru.mapel || 'Semua Mapel'}</td>
           <td>${guru.maxJam}</td>
           <td><span class="badge ${guru.status === 'Aktif' ? 'badge-success' : 'badge-danger'}">${guru.status}</span></td>
           <td>
@@ -1851,7 +1906,9 @@
     function renderKelasTable() {
       const tbody = document.getElementById('kelasTableBody');
       
-      if (kelasList.length === 0) {
+      console.log('Rendering kelas table, data:', kelasList);
+
+      if (!kelasList || kelasList.length === 0) {
         tbody.innerHTML = `
           <tr>
             <td colspan="7" style="text-align: center;">
@@ -1865,7 +1922,7 @@
         `;
         return;
       }
-      
+
       tbody.innerHTML = kelasList.map((kelas, index) => `
         <tr>
           <td>${index + 1}</td>
@@ -1989,7 +2046,9 @@
     function renderMapelTable() {
       const tbody = document.getElementById('mapelTableBody');
       
-      if (mapelList.length === 0) {
+      console.log('Rendering mapel table, data:', mapelList);
+
+      if (!mapelList || mapelList.length === 0) {
         tbody.innerHTML = `
           <tr>
             <td colspan="7" style="text-align: center;">
@@ -2003,7 +2062,7 @@
         `;
         return;
       }
-      
+
       tbody.innerHTML = mapelList.map((mapel, index) => `
         <tr>
           <td>${index + 1}</td>
@@ -2329,15 +2388,35 @@
     // ============================================================================
     // UTILITIES
     // ============================================================================
+    
+    /**
+     * Force reload data dari spreadsheet (untuk debugging)
+     */
+    function forceReloadData() {
+      showLoading('Memaksa reload data dari spreadsheet...');
+      
+      google.script.run
+        .withSuccessHandler(function(result) {
+          console.log('Force reload result:', result);
+          loadAllData();
+        })
+        .withFailureHandler(function(error) {
+          hideLoading();
+          console.error('Force reload error:', error);
+          showToast('Error: ' + error, 'error');
+        })
+        .setupDatabase();
+    }
+    
     function showLoading(message = 'Memproses...') {
       document.getElementById('loadingText').innerHTML = message;
       document.getElementById('loadingOverlay').classList.add('active');
     }
-    
+
     function hideLoading() {
       document.getElementById('loadingOverlay').classList.remove('active');
     }
-    
+
     function showToast(message, type = 'info') {
       const container = document.getElementById('toastContainer');
       const icons = {
@@ -2346,16 +2425,16 @@
         warning: 'warning',
         info: 'info'
       };
-      
+
       const toast = document.createElement('div');
       toast.className = `toast ${type}`;
       toast.innerHTML = `
         <span class="material-icons-round toast-icon">${icons[type]}</span>
         <span class="toast-message">${message}</span>
       `;
-      
+
       container.appendChild(toast);
-      
+
       setTimeout(() => {
         toast.style.animation = 'toastSlideIn 0.3s ease reverse';
         setTimeout(() => toast.remove(), 300);

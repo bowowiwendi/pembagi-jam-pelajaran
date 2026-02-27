@@ -7,6 +7,42 @@
 // KONFIGURASI & SETUP
 // ============================================================================
 
+/**
+ * Menu custom yang muncul di Google Sheets
+ */
+function onOpen() {
+  SpreadsheetApp.getUi()
+    .createMenu('🏫 Pembagi Jam Pelajaran')
+    .addItem('📊 Setup Database', 'setupDatabase')
+    .addItem('🌐 Buka Web App', 'showWebAppDialog')
+    .addToUi();
+  
+  // Auto setup saat spreadsheet dibuka
+  setupDatabase();
+}
+
+/**
+ * Dialog untuk membuka web app
+ */
+function showWebAppDialog() {
+  const html = HtmlService.createHtmlOutput(`
+    <div style="font-family: Arial; padding: 20px;">
+      <h2 style="color: #4CAF50;">Aplikasi Web Siap!</h2>
+      <p>Untuk menggunakan aplikasi:</p>
+      <ol>
+        <li>Klik tombol <strong>Deploy</strong> di editor Apps Script</li>
+        <li>Pilih <strong>New deployment</strong></li>
+        <li>Pilih type <strong>Web app</strong></li>
+        <li>Klik <strong>Deploy</strong></li>
+        <li>Buka URL yang diberikan</li>
+      </ol>
+      <p><strong>Password default: admin123</strong></p>
+    </div>
+  `).setWidth(400).setHeight(300);
+  
+  SpreadsheetApp.getUi().showModalDialog(html, 'Pembagi Jam Pelajaran');
+}
+
 const CONFIG = {
   SHEET_NAMES: {
     GURU: 'Data Guru',
@@ -66,6 +102,7 @@ function getOrCreateSheet(sheetName) {
  * Setup struktur database spreadsheet
  */
 function setupDatabase() {
+  Logger.log('=== Starting setupDatabase ===');
   const ss = getSpreadsheet();
   
   // Setup Data Guru
@@ -83,6 +120,7 @@ function setupDatabase() {
   // Setup Settings
   setupSettingsSheet(ss);
   
+  Logger.log('=== setupDatabase completed ===');
   return { success: true, message: 'Database berhasil di-setup!' };
 }
 
@@ -96,6 +134,9 @@ function setupGuruSheet(ss) {
   sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
   sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold').setBackground('#4CAF50').setFontColor('white');
   
+  // Cek apakah sudah ada data
+  const existingData = sheet.getLastRow();
+  
   // Data sample
   const sampleData = [
     ['GURU001', 'Ahmad Fauzi', 'Guru Kelas', 'Semua Mapel', 24, 'Aktif', new Date()],
@@ -106,8 +147,12 @@ function setupGuruSheet(ss) {
     ['GURU006', 'Aisyah Putri', 'Guru Mapel', 'SBdP', 18, 'Aktif', new Date()]
   ];
   
-  if (sheet.getLastRow() < 2) {
+  // Hanya insert jika belum ada data sama sekali
+  if (existingData < 2) {
     sheet.getRange(2, 1, sampleData.length, sampleData[0].length).setValues(sampleData);
+    Logger.log('Data guru sample inserted: ' + sampleData.length + ' rows');
+  } else {
+    Logger.log('Data guru sudah ada: ' + existingData + ' rows');
   }
 }
 
@@ -120,6 +165,9 @@ function setupKelasSheet(ss) {
   const headers = ['ID', 'Nama Kelas', 'Tingkat', 'Jumlah Jam/Hari', 'Guru Kelas', 'Status', 'Created At'];
   sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
   sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold').setBackground('#2196F3').setFontColor('white');
+  
+  // Cek apakah sudah ada data
+  const existingData = sheet.getLastRow();
   
   // Data sample - 6 tingkat dengan 2 paralel masing-masing
   const sampleData = [];
@@ -141,8 +189,12 @@ function setupKelasSheet(ss) {
     }
   }
   
-  if (sheet.getLastRow() < 2) {
+  // Hanya insert jika belum ada data
+  if (existingData < 2) {
     sheet.getRange(2, 1, sampleData.length, sampleData[0].length).setValues(sampleData);
+    Logger.log('Data kelas sample inserted: ' + sampleData.length + ' rows');
+  } else {
+    Logger.log('Data kelas sudah ada: ' + existingData + ' rows');
   }
 }
 
@@ -155,6 +207,9 @@ function setupMapelSheet(ss) {
   const headers = ['ID', 'Mata Pelajaran', 'Jam/Minggu (Kls 1-3)', 'Jam/Minggu (Kls 4-6)', 'Kategori', 'Warna', 'Created At'];
   sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
   sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold').setBackground('#9C27B0').setFontColor('white');
+  
+  // Cek apakah sudah ada data
+  const existingData = sheet.getLastRow();
   
   // Struktur kurikulum SD/MI
   const sampleData = [
@@ -170,8 +225,12 @@ function setupMapelSheet(ss) {
     ['MAPEL010', 'Tematik', 10, 0, 'Guru Kelas', '#FFF176', new Date()]
   ];
   
-  if (sheet.getLastRow() < 2) {
+  // Hanya insert jika belum ada data
+  if (existingData < 2) {
     sheet.getRange(2, 1, sampleData.length, sampleData[0].length).setValues(sampleData);
+    Logger.log('Data mapel sample inserted: ' + sampleData.length + ' rows');
+  } else {
+    Logger.log('Data mapel sudah ada: ' + existingData + ' rows');
   }
 }
 
@@ -196,6 +255,9 @@ function setupSettingsSheet(ss) {
   sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
   sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold').setBackground('#607D8B').setFontColor('white');
   
+  // Cek apakah sudah ada data
+  const existingData = sheet.getLastRow();
+  
   const settings = [
     ['admin_password', CONFIG.ADMIN_PASSWORD, 'Password admin'],
     ['school_name', 'SD/MI Contoh', 'Nama Sekolah'],
@@ -204,8 +266,12 @@ function setupSettingsSheet(ss) {
     ['last_generate', '', 'Terakhir Generate']
   ];
   
-  if (sheet.getLastRow() < 2) {
+  // Hanya insert jika belum ada data
+  if (existingData < 2) {
     sheet.getRange(2, 1, settings.length, settings[0].length).setValues(settings);
+    Logger.log('Data settings inserted: ' + settings.length + ' rows');
+  } else {
+    Logger.log('Data settings sudah ada: ' + existingData + ' rows');
   }
 }
 
@@ -218,19 +284,42 @@ function setupSettingsSheet(ss) {
  */
 function getGuruList() {
   try {
-    const sheet = getOrCreateSheet(CONFIG.SHEET_NAMES.GURU);
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName(CONFIG.SHEET_NAMES.GURU);
+    
+    // Jika sheet belum ada, setup dulu
+    if (!sheet) {
+      Logger.log('Sheet Guru belum ada, melakukan setup...');
+      setupDatabase();
+      sheet = ss.getSheetByName(CONFIG.SHEET_NAMES.GURU);
+    }
+    
+    if (!sheet || sheet.getLastRow() < 2) {
+      Logger.log('Sheet Guru kosong atau tidak ada');
+      return [];
+    }
+    
     const data = sheet.getDataRange().getValues();
+    Logger.log('Data Guru raw: ' + JSON.stringify(data));
+    
+    if (data.length < 2) {
+      return [];
+    }
+    
     const headers = data.shift();
     
-    return data.map(row => ({
-      id: row[0],
-      nama: row[1],
-      jenis: row[2],
-      mapel: row[3],
-      maxJam: row[4],
-      status: row[5],
-      createdAt: row[6]
-    })).filter(g => g.id);
+    const result = data.map(row => ({
+      id: row[0] || '',
+      nama: row[1] || '',
+      jenis: row[2] || '',
+      mapel: row[3] || '',
+      maxJam: row[4] || 24,
+      status: row[5] || 'Aktif',
+      createdAt: row[6] || new Date()
+    })).filter(g => g.id && g.nama);
+    
+    Logger.log('Data Guru processed: ' + result.length + ' items');
+    return result;
   } catch (e) {
     Logger.log('Error getGuruList: ' + e.toString());
     return [];
@@ -300,19 +389,41 @@ function deleteGuru(id) {
  */
 function getKelasList() {
   try {
-    const sheet = getOrCreateSheet(CONFIG.SHEET_NAMES.KELAS);
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName(CONFIG.SHEET_NAMES.KELAS);
+    
+    // Jika sheet belum ada, setup dulu
+    if (!sheet) {
+      Logger.log('Sheet Kelas belum ada, melakukan setup...');
+      setupDatabase();
+      sheet = ss.getSheetByName(CONFIG.SHEET_NAMES.KELAS);
+    }
+    
+    if (!sheet || sheet.getLastRow() < 2) {
+      Logger.log('Sheet Kelas kosong atau tidak ada');
+      return [];
+    }
+    
     const data = sheet.getDataRange().getValues();
+    
+    if (data.length < 2) {
+      return [];
+    }
+    
     const headers = data.shift();
     
-    return data.map(row => ({
-      id: row[0],
-      nama: row[1],
-      tingkat: row[2],
-      jamPerHari: row[3],
-      guruKelas: row[4],
-      status: row[5],
-      createdAt: row[6]
-    })).filter(k => k.id);
+    const result = data.map(row => ({
+      id: row[0] || '',
+      nama: row[1] || '',
+      tingkat: row[2] || 1,
+      jamPerHari: row[3] || 6,
+      guruKelas: row[4] || '',
+      status: row[5] || 'Aktif',
+      createdAt: row[6] || new Date()
+    })).filter(k => k.id && k.nama);
+    
+    Logger.log('Data Kelas processed: ' + result.length + ' items');
+    return result;
   } catch (e) {
     Logger.log('Error getKelasList: ' + e.toString());
     return [];
@@ -380,19 +491,41 @@ function deleteKelas(id) {
  */
 function getMapelList() {
   try {
-    const sheet = getOrCreateSheet(CONFIG.SHEET_NAMES.MAPEL);
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName(CONFIG.SHEET_NAMES.MAPEL);
+    
+    // Jika sheet belum ada, setup dulu
+    if (!sheet) {
+      Logger.log('Sheet Mapel belum ada, melakukan setup...');
+      setupDatabase();
+      sheet = ss.getSheetByName(CONFIG.SHEET_NAMES.MAPEL);
+    }
+    
+    if (!sheet || sheet.getLastRow() < 2) {
+      Logger.log('Sheet Mapel kosong atau tidak ada');
+      return [];
+    }
+    
     const data = sheet.getDataRange().getValues();
+    
+    if (data.length < 2) {
+      return [];
+    }
+    
     const headers = data.shift();
     
-    return data.map(row => ({
-      id: row[0],
-      nama: row[1],
-      jamKls13: row[2],
-      jamKls46: row[3],
-      kategori: row[4],
-      warna: row[5],
-      createdAt: row[6]
-    })).filter(m => m.id);
+    const result = data.map(row => ({
+      id: row[0] || '',
+      nama: row[1] || '',
+      jamKls13: row[2] || 0,
+      jamKls46: row[3] || 0,
+      kategori: row[4] || 'Guru Kelas',
+      warna: row[5] || '#4CAF50',
+      createdAt: row[6] || new Date()
+    })).filter(m => m.id && m.nama);
+    
+    Logger.log('Data Mapel processed: ' + result.length + ' items');
+    return result;
   } catch (e) {
     Logger.log('Error getMapelList: ' + e.toString());
     return [];
@@ -767,6 +900,8 @@ function getDashboardStats() {
     const mapelList = getMapelList();
     const jadwalList = getJadwal();
     
+    Logger.log('Dashboard stats - Guru: ' + guruList.length + ', Kelas: ' + kelasList.length + ', Mapel: ' + mapelList.length + ', Jadwal: ' + jadwalList.length);
+    
     // Hitung total jam guru
     let totalJamGuru = 0;
     guruList.forEach(g => {
@@ -784,6 +919,7 @@ function getDashboardStats() {
       guruMapel: guruList.filter(g => g.jenis === 'Guru Mapel').length
     };
   } catch (e) {
+    Logger.log('Error getDashboardStats: ' + e.toString());
     return {
       totalGuru: 0,
       totalKelas: 0,

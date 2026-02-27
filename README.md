@@ -84,23 +84,30 @@ Sistem pembagian otomatis jam pelajaran untuk Sekolah Dasar/Madrasah Ibtidaiyah 
 6. Paste ke editor
 7. Klik **Save**
 
-### Langkah 5: Jalankan Setup Database
+### Langkah 5: Jalankan Setup Database (PENTING!)
+
+**⚠️ Ini adalah langkah yang paling penting agar data muncul!**
 
 1. Di editor Apps Script, pastikan file `Code.gs` terbuka
-2. Di toolbar atas, pilih fungsi **setupDatabase** dari dropdown (sebelah tombol Debug)
-3. Klik tombol **Run** (▶️)
-4. Jika muncul permintaan izin:
+2. Di toolbar atas, ada dropdown yang menampilkan nama fungsi (default: `setupDatabase`)
+3. **Pilih fungsi `setupDatabase`** dari dropdown
+4. Klik tombol **Run** (▶️) di sebelahnya
+5. Jika muncul permintaan izin:
    - Klik **Review Permissions**
    - Pilih akun Google Anda
    - Klik **Advanced** → **Go to (Untitled project) (unsafe)**
    - Klik **Allow**
-5. Tunggu hingga muncul "Execution completed"
-6. Kembali ke Google Sheets, Anda akan melihat sheet-sheet baru telah dibuat:
-   - Data Guru
-   - Data Kelas
-   - Struktur Mapel
-   - Hasil Jadwal
-   - Settings
+6. Tunggu hingga muncul **"Execution completed"** di panel Execution log
+7. **Kembali ke Google Sheets** - Anda akan melihat:
+   - Menu baru "🏫 Pembagi Jam Pelajaran" di menu atas
+   - Sheet-sheet baru telah dibuat:
+     - `Data Guru` (dengan 6 data sample guru)
+     - `Data Kelas` (dengan 12 data sample kelas)
+     - `Struktur Mapel` (dengan 10 data sample mapel)
+     - `Hasil Jadwal`
+     - `Settings`
+
+**Catatan:** Fungsi `setupDatabase` akan otomatis dijalankan setiap kali spreadsheet dibuka berkat fungsi `onOpen()`.
 
 ### Langkah 6: Deploy sebagai Web App
 
@@ -228,28 +235,75 @@ pembagi-jam-pelajaran/
 
 ## 🔧 Troubleshooting
 
+### ⚠️ Data Tidak Muncul di Aplikasi
+
+Ini adalah masalah yang umum terjadi. Ikuti langkah-langkah berikut:
+
+**Langkah 1: Pastikan Database Sudah Di-Setup**
+
+1. Buka Google Sheets Anda
+2. Lihat di menu atas, apakah ada menu **"🏫 Pembagi Jam Pelajaran"**?
+3. Jika ada, klik menu tersebut → **"📊 Setup Database"**
+4. Tunggu hingga muncul notifikasi "Execution completed"
+5. Refresh halaman web app Anda
+
+**Langkah 2: Cek Sheet di Spreadsheet**
+
+1. Buka Google Sheets
+2. Pastikan sheet-sheet berikut ada:
+   - `Data Guru`
+   - `Data Kelas`
+   - `Struktur Mapel`
+   - `Hasil Jadwal`
+   - `Settings`
+3. Jika tidak ada, jalankan fungsi `setupDatabase` dari Apps Script Editor
+
+**Langkah 3: Gunakan Tombol Reset & Populate Data**
+
+1. Di aplikasi web, buka **Dashboard**
+2. Scroll ke bawah ke bagian **"Pengaturan Data"**
+3. Klik tombol **"Reset & Populate Data"**
+4. Tunggu proses selesai
+
+**Langkah 4: Cek Console Browser**
+
+1. Tekan `F12` di browser
+2. Buka tab **Console**
+3. Lihat apakah ada error merah
+4. Screenshot error dan periksa detailnya
+
 ### Error: "Exception: You do not have permission"
 
 - Pastikan Anda login dengan akun Google yang sama dengan pemilik spreadsheet
-- Jalankan ulang fungsi `setupDatabase`
+- Jalankan ulang fungsi `setupDatabase` dari editor Apps Script
 - Cek permission saat deploy
 
 ### Error: "Service is currently unavailable"
 
 - Tunggu beberapa saat dan refresh halaman
 - Apps Script memiliki quota limit, tunggu beberapa menit
+- Cek [Apps Script Quotas](https://developers.google.com/apps-script/guides/services/quotas)
 
-### Data tidak muncul
+### Data tidak tersimpan saat input
 
-- Refresh halaman (klik tombol Refresh di top bar)
-- Pastikan data sudah tersimpan di Google Sheets
-- Cek console browser untuk error (F12)
+- Pastikan koneksi internet stabil
+- Cek apakah Anda masih login (belum logout)
+- Refresh halaman dan coba lagi
 
 ### Generate jadwal gagal
 
 - Pastikan ada minimal 1 guru dan 1 kelas
 - Cek maksimal jam guru tidak terlalu rendah
 - Reset jadwal dan coba generate ulang
+
+### Web App tidak bisa diakses
+
+- Pastikan deployment sudah benar
+- Cek URL web app (harus berakhiran `/exec`)
+- Coba deploy ulang dengan langkah:
+  1. Deploy → Manage deployments
+  2. Edit deployment yang ada
+  3. Klik Deploy lagi
 
 ---
 
