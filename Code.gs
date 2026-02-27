@@ -64,8 +64,7 @@ function doGet() {
     .evaluate()
     .setTitle('Pembagi Jam Pelajaran SD/MI')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
-    .addMetaTag('viewport', 'width=device-width, initial-scale=1')
-    .setFaviconUrl('https://fonts.gstatic.com/s/i/materialicons/school/v1/24px.svg');
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
 
 /**
