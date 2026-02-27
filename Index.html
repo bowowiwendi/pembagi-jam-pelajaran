@@ -1,0 +1,2366 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pembagi Jam Pelajaran SD/MI</title>
+  
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Icons+Round" rel="stylesheet">
+  
+  <style>
+    /* ============================================================================
+       CSS VARIABLES & RESET
+       ============================================================================ */
+    :root {
+      --primary-color: #4CAF50;
+      --primary-dark: #388E3C;
+      --primary-light: #81C784;
+      --secondary-color: #2196F3;
+      --secondary-dark: #1976D2;
+      --accent-color: #FF9800;
+      --danger-color: #f44336;
+      --warning-color: #ff9800;
+      --success-color: #4CAF50;
+      --info-color: #2196F3;
+      
+      --bg-color: #f5f7fa;
+      --card-bg: #ffffff;
+      --text-primary: #2c3e50;
+      --text-secondary: #7f8c8d;
+      --border-color: #e1e8ed;
+      --shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+      --shadow-hover: 0 4px 20px rgba(0, 0, 0, 0.12);
+      --radius: 12px;
+      --radius-sm: 8px;
+      --transition: all 0.3s ease;
+    }
+    
+    [data-theme="dark"] {
+      --bg-color: #1a1a2e;
+      --card-bg: #16213e;
+      --text-primary: #eaeaea;
+      --text-secondary: #a0a0a0;
+      --border-color: #2d3748;
+      --shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: var(--bg-color);
+      color: var(--text-primary);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+    
+    /* ============================================================================
+       LAYOUT
+       ============================================================================ */
+    .app-container {
+      display: flex;
+      min-height: 100vh;
+    }
+    
+    /* Sidebar */
+    .sidebar {
+      width: 280px;
+      background: linear-gradient(180deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+      color: white;
+      padding: 24px;
+      position: fixed;
+      height: 100vh;
+      overflow-y: auto;
+      transition: var(--transition);
+      z-index: 1000;
+    }
+    
+    .sidebar-header {
+      text-align: center;
+      padding-bottom: 24px;
+      border-bottom: 1px solid rgba(255,255,255,0.2);
+      margin-bottom: 24px;
+    }
+    
+    .sidebar-header .logo-icon {
+      font-size: 48px;
+      margin-bottom: 8px;
+    }
+    
+    .sidebar-header h1 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    
+    .sidebar-header p {
+      font-size: 12px;
+      opacity: 0.8;
+    }
+    
+    .nav-menu {
+      list-style: none;
+    }
+    
+    .nav-item {
+      margin-bottom: 8px;
+    }
+    
+    .nav-link {
+      display: flex;
+      align-items: center;
+      padding: 14px 16px;
+      color: rgba(255,255,255,0.9);
+      text-decoration: none;
+      border-radius: var(--radius-sm);
+      transition: var(--transition);
+      cursor: pointer;
+    }
+    
+    .nav-link:hover, .nav-link.active {
+      background: rgba(255,255,255,0.2);
+      color: white;
+    }
+    
+    .nav-link .material-icons-round {
+      margin-right: 12px;
+      font-size: 22px;
+    }
+    
+    .nav-link span {
+      font-size: 14px;
+      font-weight: 500;
+    }
+    
+    /* Main Content */
+    .main-content {
+      flex: 1;
+      margin-left: 280px;
+      padding: 24px;
+      transition: var(--transition);
+    }
+    
+    /* Top Bar */
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 32px;
+      padding: 16px 24px;
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    
+    .top-bar h2 {
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    
+    .top-bar-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .btn-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: none;
+      background: var(--bg-color);
+      color: var(--text-primary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: var(--transition);
+    }
+    
+    .btn-icon:hover {
+      background: var(--primary-color);
+      color: white;
+    }
+    
+    /* ============================================================================
+       CARDS & DASHBOARD
+       ============================================================================ */
+    .dashboard-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 24px;
+      margin-bottom: 32px;
+    }
+    
+    .stat-card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: var(--shadow);
+      transition: var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .stat-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-hover);
+    }
+    
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background: var(--primary-color);
+    }
+    
+    .stat-card.blue::before { background: var(--secondary-color); }
+    .stat-card.orange::before { background: var(--accent-color); }
+    .stat-card.purple::before { background: #9C27B0; }
+    
+    .stat-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    
+    .stat-card-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+    }
+    
+    .stat-card-icon.green { background: rgba(76, 175, 80, 0.15); color: var(--primary-color); }
+    .stat-card-icon.blue { background: rgba(33, 150, 243, 0.15); color: var(--secondary-color); }
+    .stat-card-icon.orange { background: rgba(255, 152, 0, 0.15); color: var(--accent-color); }
+    .stat-card-icon.purple { background: rgba(156, 39, 176, 0.15); color: #9C27B0; }
+    
+    .stat-card-value {
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+    
+    .stat-card-label {
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+    
+    /* ============================================================================
+       CONTENT CARDS
+       ============================================================================ */
+    .content-card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: var(--shadow);
+      margin-bottom: 24px;
+    }
+    
+    .content-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .content-card-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .content-card-title .material-icons-round {
+      color: var(--primary-color);
+    }
+    
+    /* ============================================================================
+       BUTTONS
+       ============================================================================ */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: var(--transition);
+      font-family: inherit;
+    }
+    
+    .btn-primary {
+      background: var(--primary-color);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: var(--primary-dark);
+      box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+    }
+    
+    .btn-secondary {
+      background: var(--secondary-color);
+      color: white;
+    }
+    
+    .btn-secondary:hover {
+      background: var(--secondary-dark);
+    }
+    
+    .btn-danger {
+      background: var(--danger-color);
+      color: white;
+    }
+    
+    .btn-danger:hover {
+      background: #d32f2f;
+    }
+    
+    .btn-outline {
+      background: transparent;
+      border: 2px solid var(--border-color);
+      color: var(--text-primary);
+    }
+    
+    .btn-outline:hover {
+      border-color: var(--primary-color);
+      color: var(--primary-color);
+    }
+    
+    .btn-sm {
+      padding: 8px 16px;
+      font-size: 13px;
+    }
+    
+    .btn-lg {
+      padding: 16px 32px;
+      font-size: 16px;
+    }
+    
+    /* ============================================================================
+       FORMS
+       ============================================================================ */
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    .form-label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+      color: var(--text-primary);
+      font-size: 14px;
+    }
+    
+    .form-control {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-family: inherit;
+      transition: var(--transition);
+      background: var(--card-bg);
+      color: var(--text-primary);
+    }
+    
+    .form-control:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+    }
+    
+    .form-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+    
+    /* ============================================================================
+       TABLES
+       ============================================================================ */
+    .table-container {
+      overflow-x: auto;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    th, td {
+      padding: 14px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    th {
+      background: var(--bg-color);
+      font-weight: 600;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-secondary);
+    }
+    
+    tr:hover {
+      background: var(--bg-color);
+    }
+    
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    
+    .badge-success {
+      background: rgba(76, 175, 80, 0.15);
+      color: var(--success-color);
+    }
+    
+    .badge-warning {
+      background: rgba(255, 152, 0, 0.15);
+      color: var(--warning-color);
+    }
+    
+    .badge-info {
+      background: rgba(33, 150, 243, 0.15);
+      color: var(--info-color);
+    }
+    
+    .badge-danger {
+      background: rgba(244, 67, 54, 0.15);
+      color: var(--danger-color);
+    }
+    
+    /* ============================================================================
+       MODAL
+       ============================================================================ */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      backdrop-filter: blur(4px);
+    }
+    
+    .modal-overlay.active {
+      display: flex;
+    }
+    
+    .modal {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      width: 90%;
+      max-width: 600px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      animation: modalSlideIn 0.3s ease;
+    }
+    
+    @keyframes modalSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 24px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .modal-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    
+    .modal-close {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: none;
+      background: var(--bg-color);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: var(--transition);
+    }
+    
+    .modal-close:hover {
+      background: var(--danger-color);
+      color: white;
+    }
+    
+    .modal-body {
+      padding: 24px;
+    }
+    
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      padding: 24px;
+      border-top: 1px solid var(--border-color);
+    }
+    
+    /* ============================================================================
+       TOAST NOTIFICATIONS
+       ============================================================================ */
+    .toast-container {
+      position: fixed;
+      top: 24px;
+      right: 24px;
+      z-index: 3000;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    
+    .toast {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 20px;
+      background: var(--card-bg);
+      border-radius: var(--radius-sm);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+      min-width: 300px;
+      animation: toastSlideIn 0.3s ease;
+      border-left: 4px solid var(--primary-color);
+    }
+    
+    .toast.success { border-left-color: var(--success-color); }
+    .toast.error { border-left-color: var(--danger-color); }
+    .toast.warning { border-left-color: var(--warning-color); }
+    .toast.info { border-left-color: var(--info-color); }
+    
+    @keyframes toastSlideIn {
+      from {
+        opacity: 0;
+        transform: translateX(100%);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+    
+    .toast-icon {
+      font-size: 20px;
+    }
+    
+    .toast.success .toast-icon { color: var(--success-color); }
+    .toast.error .toast-icon { color: var(--danger-color); }
+    .toast.warning .toast-icon { color: var(--warning-color); }
+    .toast.info .toast-icon { color: var(--info-color); }
+    
+    .toast-message {
+      flex: 1;
+      font-size: 14px;
+      color: var(--text-primary);
+    }
+    
+    /* ============================================================================
+       LOADING SPINNER
+       ============================================================================ */
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 4000;
+      backdrop-filter: blur(4px);
+    }
+    
+    .loading-overlay.active {
+      display: flex;
+    }
+    
+    .loading-spinner {
+      text-align: center;
+      color: white;
+    }
+    
+    .spinner {
+      width: 60px;
+      height: 60px;
+      border: 4px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* ============================================================================
+       JADWAL GRID
+       ============================================================================ */
+    .jadwal-grid {
+      overflow-x: auto;
+    }
+    
+    .jadwal-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 800px;
+    }
+    
+    .jadwal-table th,
+    .jadwal-table td {
+      border: 1px solid var(--border-color);
+      padding: 12px 8px;
+      text-align: center;
+      font-size: 13px;
+    }
+    
+    .jadwal-table th {
+      background: var(--primary-color);
+      color: white;
+      font-weight: 600;
+      text-transform: none;
+    }
+    
+    .jadwal-table .jam-column {
+      background: var(--bg-color);
+      font-weight: 600;
+      min-width: 60px;
+    }
+    
+    .jadwal-cell {
+      min-height: 60px;
+      vertical-align: top;
+      transition: var(--transition);
+    }
+    
+    .jadwal-cell:hover {
+      transform: scale(1.02);
+      z-index: 1;
+      position: relative;
+    }
+    
+    .jadwal-item {
+      padding: 8px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      color: white;
+      margin-bottom: 4px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .jadwal-item strong {
+      display: block;
+      margin-bottom: 2px;
+    }
+    
+    .jadwal-item small {
+      opacity: 0.9;
+      font-size: 11px;
+    }
+    
+    /* ============================================================================
+       FILTER SECTION
+       ============================================================================ */
+    .filter-section {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    
+    .filter-section .form-group {
+      margin-bottom: 0;
+      min-width: 200px;
+    }
+    
+    /* ============================================================================
+       LOGIN MODAL
+       ============================================================================ */
+    .login-container {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    }
+    
+    .login-card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      padding: 40px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+    
+    .login-header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    
+    .login-header .logo-icon {
+      font-size: 64px;
+      color: var(--primary-color);
+      margin-bottom: 16px;
+    }
+    
+    .login-header h1 {
+      font-size: 24px;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+    
+    .login-header p {
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+    
+    /* ============================================================================
+       EMPTY STATE
+       ============================================================================ */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+    }
+    
+    .empty-state-icon {
+      font-size: 80px;
+      color: var(--border-color);
+      margin-bottom: 24px;
+    }
+    
+    .empty-state h3 {
+      font-size: 20px;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+    
+    .empty-state p {
+      color: var(--text-secondary);
+      margin-bottom: 24px;
+    }
+    
+    /* ============================================================================
+       RESPONSIVE
+       ============================================================================ */
+    @media (max-width: 768px) {
+      .sidebar {
+        transform: translateX(-100%);
+        width: 280px;
+      }
+      
+      .sidebar.active {
+        transform: translateX(0);
+      }
+      
+      .main-content {
+        margin-left: 0;
+      }
+      
+      .top-bar h2 {
+        font-size: 18px;
+      }
+      
+      .dashboard-stats {
+        grid-template-columns: 1fr;
+      }
+      
+      .mobile-menu-btn {
+        display: flex !important;
+      }
+    }
+    
+    .mobile-menu-btn {
+      display: none;
+      width: 40px;
+      height: 40px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      color: var(--text-primary);
+    }
+    
+    /* ============================================================================
+       PAGE SECTIONS
+       ============================================================================ */
+    .page-section {
+      display: none;
+    }
+    
+    .page-section.active {
+      display: block;
+    }
+    
+    /* Action buttons in table */
+    .action-buttons {
+      display: flex;
+      gap: 8px;
+    }
+    
+    .btn-action {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: var(--transition);
+    }
+    
+    .btn-action.edit {
+      background: rgba(33, 150, 243, 0.15);
+      color: var(--secondary-color);
+    }
+    
+    .btn-action.edit:hover {
+      background: var(--secondary-color);
+      color: white;
+    }
+    
+    .btn-action.delete {
+      background: rgba(244, 67, 54, 0.15);
+      color: var(--danger-color);
+    }
+    
+    .btn-action.delete:hover {
+      background: var(--danger-color);
+      color: white;
+    }
+    
+    /* Color picker */
+    .color-picker-wrapper {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+    
+    .color-option {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: var(--transition);
+    }
+    
+    .color-option:hover,
+    .color-option.selected {
+      transform: scale(1.2);
+      border-color: var(--text-primary);
+    }
+    
+    /* Print styles */
+    @media print {
+      .sidebar,
+      .top-bar,
+      .btn,
+      .modal-overlay,
+      .toast-container {
+        display: none !important;
+      }
+      
+      .main-content {
+        margin-left: 0;
+      }
+      
+      .content-card {
+        box-shadow: none;
+        border: 1px solid #ddd;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- ============================================================================
+       LOGIN PAGE
+       ============================================================================ -->
+  <div id="loginPage" class="login-container">
+    <div class="login-card">
+      <div class="login-header">
+        <span class="material-icons-round logo-icon">school</span>
+        <h1>Pembagi Jam Pelajaran</h1>
+        <p>SD/MI - Sistem Manajemen Jadwal</p>
+      </div>
+      
+      <form id="loginForm" onsubmit="handleLogin(event)">
+        <div class="form-group">
+          <label class="form-label" for="loginPassword">Password Admin</label>
+          <input 
+            type="password" 
+            id="loginPassword" 
+            class="form-control" 
+            placeholder="Masukkan password"
+            required
+          >
+        </div>
+        
+        <button type="submit" class="btn btn-primary btn-lg" style="width: 100%;">
+          <span class="material-icons-round">login</span>
+          Login
+        </button>
+      </form>
+    </div>
+  </div>
+  
+  <!-- ============================================================================
+       MAIN APP
+       ============================================================================ -->
+  <div id="mainApp" class="app-container" style="display: none;">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <span class="material-icons-round logo-icon">school</span>
+        <h1>Pembagi Jam Pelajaran</h1>
+        <p>SD/MI Management System</p>
+      </div>
+      
+      <ul class="nav-menu">
+        <li class="nav-item">
+          <a class="nav-link active" onclick="showPage('dashboard')">
+            <span class="material-icons-round">dashboard</span>
+            <span>Dashboard</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" onclick="showPage('guru')">
+            <span class="material-icons-round">people</span>
+            <span>Data Guru</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" onclick="showPage('kelas')">
+            <span class="material-icons-round">class</span>
+            <span>Data Kelas</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" onclick="showPage('mapel')">
+            <span class="material-icons-round">menu_book</span>
+            <span>Struktur Mapel</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" onclick="showPage('jadwal')">
+            <span class="material-icons-round">calendar_today</span>
+            <span>Jadwal Pelajaran</span>
+          </a>
+        </li>
+        <li class="nav-item" style="margin-top: auto;">
+          <a class="nav-link" onclick="toggleDarkMode()">
+            <span class="material-icons-round" id="darkModeIcon">dark_mode</span>
+            <span id="darkModeText">Dark Mode</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" onclick="handleLogout()">
+            <span class="material-icons-round">logout</span>
+            <span>Logout</span>
+          </a>
+        </li>
+      </ul>
+    </aside>
+    
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Top Bar -->
+      <div class="top-bar">
+        <button class="mobile-menu-btn" onclick="toggleSidebar()">
+          <span class="material-icons-round">menu</span>
+        </button>
+        <h2 id="pageTitle">Dashboard</h2>
+        <div class="top-bar-actions">
+          <button class="btn-icon" onclick="toggleDarkMode()" title="Toggle Dark Mode">
+            <span class="material-icons-round" id="topDarkModeIcon">dark_mode</span>
+          </button>
+          <button class="btn-icon" onclick="refreshData()" title="Refresh">
+            <span class="material-icons-round">refresh</span>
+          </button>
+        </div>
+      </div>
+      
+      <!-- Dashboard Page -->
+      <div id="page-dashboard" class="page-section active">
+        <div class="dashboard-stats">
+          <div class="stat-card">
+            <div class="stat-card-header">
+              <div>
+                <div class="stat-card-value" id="statTotalGuru">0</div>
+                <div class="stat-card-label">Total Guru</div>
+              </div>
+              <div class="stat-card-icon green">
+                <span class="material-icons-round">people</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="stat-card blue">
+            <div class="stat-card-header">
+              <div>
+                <div class="stat-card-value" id="statTotalKelas">0</div>
+                <div class="stat-card-label">Total Kelas</div>
+              </div>
+              <div class="stat-card-icon blue">
+                <span class="material-icons-round">class</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="stat-card orange">
+            <div class="stat-card-header">
+              <div>
+                <div class="stat-card-value" id="statTotalMapel">0</div>
+                <div class="stat-card-label">Total Mapel</div>
+              </div>
+              <div class="stat-card-icon orange">
+                <span class="material-icons-round">menu_book</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="stat-card purple">
+            <div class="stat-card-header">
+              <div>
+                <div class="stat-card-value" id="statTotalJadwal">0</div>
+                <div class="stat-card-label">Jam Terjadwal</div>
+              </div>
+              <div class="stat-card-icon purple">
+                <span class="material-icons-round">calendar_today</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="content-card">
+          <div class="content-card-header">
+            <h3 class="content-card-title">
+              <span class="material-icons-round">auto_awesome</span>
+              Generate Jadwal Otomatis
+            </h3>
+          </div>
+          
+          <div style="text-align: center; padding: 40px;">
+            <span class="material-icons-round" style="font-size: 64px; color: var(--primary-color); margin-bottom: 16px;">
+              schedule
+            </span>
+            <h3 style="margin-bottom: 8px;">Siap Membuat Jadwal?</h3>
+            <p style="color: var(--text-secondary); margin-bottom: 24px;">
+              Sistem akan membagi jam pelajaran secara otomatis tanpa bentrok
+            </p>
+            <button class="btn btn-primary btn-lg" onclick="generateJadwal()">
+              <span class="material-icons-round">play_arrow</span>
+              Generate Jadwal
+            </button>
+          </div>
+        </div>
+        
+        <div class="content-card">
+          <div class="content-card-header">
+            <h3 class="content-card-title">
+              <span class="material-icons-round">info</span>
+              Informasi Sistem
+            </h3>
+          </div>
+          
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px;">
+            <div style="padding: 16px; background: var(--bg-color); border-radius: var(--radius-sm);">
+              <strong style="color: var(--primary-color);">Guru Kelas</strong>
+              <p style="font-size: 24px; font-weight: 700; margin: 8px 0;" id="statGuruKelas">0</p>
+              <small style="color: var(--text-secondary);">Mengajar semua mapel umum</small>
+            </div>
+            <div style="padding: 16px; background: var(--bg-color); border-radius: var(--radius-sm);">
+              <strong style="color: var(--secondary-color);">Guru Mapel</strong>
+              <p style="font-size: 24px; font-weight: 700; margin: 8px 0;" id="statGuruMapel">0</p>
+              <small style="color: var(--text-secondary);">Mengajar mapel khusus</small>
+            </div>
+            <div style="padding: 16px; background: var(--bg-color); border-radius: var(--radius-sm);">
+              <strong style="color: var(--accent-color);">Total Jam Guru</strong>
+              <p style="font-size: 24px; font-weight: 700; margin: 8px 0;" id="statTotalJamGuru">0</p>
+              <small style="color: var(--text-secondary);">Jam mengajar per minggu</small>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Data Guru Page -->
+      <div id="page-guru" class="page-section">
+        <div class="content-card">
+          <div class="content-card-header">
+            <h3 class="content-card-title">
+              <span class="material-icons-round">people</span>
+              Manajemen Data Guru
+            </h3>
+            <button class="btn btn-primary" onclick="openModalGuru()">
+              <span class="material-icons-round">add</span>
+              Tambah Guru
+            </button>
+          </div>
+          
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>No</th>
+                  <th>Nama Guru</th>
+                  <th>Jenis</th>
+                  <th>Mapel</th>
+                  <th>Max Jam/Minggu</th>
+                  <th>Status</th>
+                  <th>Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="guruTableBody">
+                <tr>
+                  <td colspan="7" style="text-align: center;">
+                    <div class="empty-state">
+                      <span class="material-icons-round empty-state-icon">people</span>
+                      <h3>Belum ada data guru</h3>
+                      <p>Klik tombol "Tambah Guru" untuk menambahkan data</p>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Data Kelas Page -->
+      <div id="page-kelas" class="page-section">
+        <div class="content-card">
+          <div class="content-card-header">
+            <h3 class="content-card-title">
+              <span class="material-icons-round">class</span>
+              Manajemen Data Kelas
+            </h3>
+            <button class="btn btn-primary" onclick="openModalKelas()">
+              <span class="material-icons-round">add</span>
+              Tambah Kelas
+            </button>
+          </div>
+          
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>No</th>
+                  <th>Nama Kelas</th>
+                  <th>Tingkat</th>
+                  <th>Jam/Hari</th>
+                  <th>Guru Kelas</th>
+                  <th>Status</th>
+                  <th>Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="kelasTableBody">
+                <tr>
+                  <td colspan="7" style="text-align: center;">
+                    <div class="empty-state">
+                      <span class="material-icons-round empty-state-icon">class</span>
+                      <h3>Belum ada data kelas</h3>
+                      <p>Klik tombol "Tambah Kelas" untuk menambahkan data</p>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Struktur Mapel Page -->
+      <div id="page-mapel" class="page-section">
+        <div class="content-card">
+          <div class="content-card-header">
+            <h3 class="content-card-title">
+              <span class="material-icons-round">menu_book</span>
+              Struktur Mata Pelajaran
+            </h3>
+            <button class="btn btn-primary" onclick="openModalMapel()">
+              <span class="material-icons-round">add</span>
+              Tambah Mapel
+            </button>
+          </div>
+          
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>No</th>
+                  <th>Mata Pelajaran</th>
+                  <th>Jam/Minggu (1-3)</th>
+                  <th>Jam/Minggu (4-6)</th>
+                  <th>Kategori</th>
+                  <th>Warna</th>
+                  <th>Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="mapelTableBody">
+                <tr>
+                  <td colspan="7" style="text-align: center;">
+                    <div class="empty-state">
+                      <span class="material-icons-round empty-state-icon">menu_book</span>
+                      <h3>Belum ada data mapel</h3>
+                      <p>Klik tombol "Tambah Mapel" untuk menambahkan data</p>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Jadwal Page -->
+      <div id="page-jadwal" class="page-section">
+        <div class="content-card">
+          <div class="content-card-header">
+            <h3 class="content-card-title">
+              <span class="material-icons-round">calendar_today</span>
+              Jadwal Pelajaran
+            </h3>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn btn-outline btn-sm" onclick="printJadwal()">
+                <span class="material-icons-round">print</span>
+                Print
+              </button>
+              <button class="btn btn-outline btn-sm" onclick="exportToExcel()">
+                <span class="material-icons-round">table_chart</span>
+                Export Excel
+              </button>
+              <button class="btn btn-danger btn-sm" onclick="resetJadwal()">
+                <span class="material-icons-round">delete</span>
+                Reset
+              </button>
+            </div>
+          </div>
+          
+          <div class="filter-section">
+            <div class="form-group">
+              <label class="form-label">Filter Kelas</label>
+              <select id="filterKelas" class="form-control" onchange="renderJadwal()">
+                <option value="">Semua Kelas</option>
+              </select>
+            </div>
+          </div>
+          
+          <div id="jadwalContainer">
+            <div class="empty-state">
+              <span class="material-icons-round empty-state-icon">event_busy</span>
+              <h3>Belum ada jadwal</h3>
+              <p>Generate jadwal terlebih dahulu dari Dashboard</p>
+              <button class="btn btn-primary" onclick="showPage('dashboard'); generateJadwal();">
+                <span class="material-icons-round">play_arrow</span>
+                Generate Jadwal
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+  
+  <!-- ============================================================================
+       MODALS
+       ============================================================================ -->
+  
+  <!-- Modal Guru -->
+  <div class="modal-overlay" id="modalGuru">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modalGuruTitle">Tambah Guru</h3>
+        <button class="modal-close" onclick="closeModalGuru()">
+          <span class="material-icons-round">close</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form id="formGuru">
+          <input type="hidden" id="guruId">
+          <div class="form-group">
+            <label class="form-label">Nama Guru *</label>
+            <input type="text" id="guruNama" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Jenis Guru *</label>
+            <select id="guruJenis" class="form-control" required onchange="toggleMapelInput()">
+              <option value="">Pilih Jenis</option>
+              <option value="Guru Kelas">Guru Kelas</option>
+              <option value="Guru Mapel">Guru Mapel</option>
+            </select>
+          </div>
+          <div class="form-group" id="guruMapelGroup" style="display: none;">
+            <label class="form-label">Mata Pelajaran *</label>
+            <select id="guruMapel" class="form-control">
+              <option value="">Pilih Mapel</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Maksimal Jam per Minggu *</label>
+            <input type="number" id="guruMaxJam" class="form-control" value="24" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Status</label>
+            <select id="guruStatus" class="form-control">
+              <option value="Aktif">Aktif</option>
+              <option value="Nonaktif">Nonaktif</option>
+            </select>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModalGuru()">Batal</button>
+        <button class="btn btn-primary" onclick="saveGuru()">
+          <span class="material-icons-round">save</span>
+          Simpan
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Modal Kelas -->
+  <div class="modal-overlay" id="modalKelas">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modalKelasTitle">Tambah Kelas</h3>
+        <button class="modal-close" onclick="closeModalKelas()">
+          <span class="material-icons-round">close</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form id="formKelas">
+          <input type="hidden" id="kelasId">
+          <div class="form-group">
+            <label class="form-label">Nama Kelas *</label>
+            <input type="text" id="kelasNama" class="form-control" placeholder="Contoh: Kelas 1A" required>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Tingkat *</label>
+              <select id="kelasTingkat" class="form-control" required>
+                <option value="">Pilih</option>
+                <option value="1">Kelas 1</option>
+                <option value="2">Kelas 2</option>
+                <option value="3">Kelas 3</option>
+                <option value="4">Kelas 4</option>
+                <option value="5">Kelas 5</option>
+                <option value="6">Kelas 6</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Jam per Hari *</label>
+              <input type="number" id="kelasJamPerHari" class="form-control" value="6" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Guru Kelas</label>
+            <select id="kelasGuruKelas" class="form-control">
+              <option value="">Pilih Guru Kelas</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Status</label>
+            <select id="kelasStatus" class="form-control">
+              <option value="Aktif">Aktif</option>
+              <option value="Nonaktif">Nonaktif</option>
+            </select>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModalKelas()">Batal</button>
+        <button class="btn btn-primary" onclick="saveKelas()">
+          <span class="material-icons-round">save</span>
+          Simpan
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Modal Mapel -->
+  <div class="modal-overlay" id="modalMapel">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modalMapelTitle">Tambah Mapel</h3>
+        <button class="modal-close" onclick="closeModalMapel()">
+          <span class="material-icons-round">close</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form id="formMapel">
+          <input type="hidden" id="mapelId">
+          <div class="form-group">
+            <label class="form-label">Nama Mata Pelajaran *</label>
+            <input type="text" id="mapelNama" class="form-control" required>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Jam/Minggu (Kls 1-3)</label>
+              <input type="number" id="mapelJamKls13" class="form-control" value="0">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Jam/Minggu (Kls 4-6)</label>
+              <input type="number" id="mapelJamKls46" class="form-control" value="0">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Kategori</label>
+            <select id="mapelKategori" class="form-control">
+              <option value="Guru Kelas">Guru Kelas</option>
+              <option value="Guru Mapel">Guru Mapel</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Warna</label>
+            <div class="color-picker-wrapper" id="colorPicker">
+              <div class="color-option" style="background: #FFB74D;" data-color="#FFB74D"></div>
+              <div class="color-option" style="background: #64B5F6;" data-color="#64B5F6"></div>
+              <div class="color-option" style="background: #81C784;" data-color="#81C784"></div>
+              <div class="color-option" style="background: #4DB6AC;" data-color="#4DB6AC"></div>
+              <div class="color-option" style="background: #A1887F;" data-color="#A1887F"></div>
+              <div class="color-option" style="background: #E57373;" data-color="#E57373"></div>
+              <div class="color-option" style="background: #BA68C8;" data-color="#BA68C8"></div>
+              <div class="color-option" style="background: #4CAF50;" data-color="#4CAF50"></div>
+              <div class="color-option" style="background: #F06292;" data-color="#F06292"></div>
+              <div class="color-option" style="background: #FFF176;" data-color="#FFF176"></div>
+            </div>
+            <input type="hidden" id="mapelWarna" value="#4CAF50">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModalMapel()">Batal</button>
+        <button class="btn btn-primary" onclick="saveMapel()">
+          <span class="material-icons-round">save</span>
+          Simpan
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- ============================================================================
+       TOAST CONTAINER
+       ============================================================================ -->
+  <div class="toast-container" id="toastContainer"></div>
+  
+  <!-- ============================================================================
+       LOADING OVERLAY
+       ============================================================================ -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner">
+      <div class="spinner"></div>
+      <p id="loadingText">Memproses...</p>
+    </div>
+  </div>
+  
+  <!-- ============================================================================
+       JAVASCRIPT
+       ============================================================================ -->
+  <script>
+    // ============================================================================
+    // STATE & DATA
+    // ============================================================================
+    let guruList = [];
+    let kelasList = [];
+    let mapelList = [];
+    let jadwalList = [];
+    let isLoggedIn = false;
+    let isDarkMode = false;
+    
+    // ============================================================================
+    // INITIALIZATION
+    // ============================================================================
+    document.addEventListener('DOMContentLoaded', function() {
+      checkLoginStatus();
+      initColorPicker();
+    });
+    
+    function checkLoginStatus() {
+      const savedLogin = localStorage.getItem('isLoggedIn');
+      if (savedLogin === 'true') {
+        isLoggedIn = true;
+        showMainApp();
+      }
+    }
+    
+    function showMainApp() {
+      document.getElementById('loginPage').style.display = 'none';
+      document.getElementById('mainApp').style.display = 'flex';
+      loadAllData();
+    }
+    
+    // ============================================================================
+    // LOGIN/LOGOUT
+    // ============================================================================
+    function handleLogin(event) {
+      event.preventDefault();
+      const password = document.getElementById('loginPassword').value;
+      
+      showLoading('Memeriksa login...');
+      
+      google.script.run
+        .withSuccessHandler(function(result) {
+          hideLoading();
+          if (result.success) {
+            isLoggedIn = true;
+            localStorage.setItem('isLoggedIn', 'true');
+            showToast('Login berhasil!', 'success');
+            showMainApp();
+          } else {
+            showToast(result.error || 'Login gagal!', 'error');
+          }
+        })
+        .withFailureHandler(function(error) {
+          hideLoading();
+          showToast('Terjadi kesalahan: ' + error, 'error');
+        })
+        .loginAdmin(password);
+    }
+    
+    function handleLogout() {
+      isLoggedIn = false;
+      localStorage.removeItem('isLoggedIn');
+      document.getElementById('mainApp').style.display = 'none';
+      document.getElementById('loginPage').style.display = 'flex';
+      document.getElementById('loginForm').reset();
+      showToast('Logout berhasil!', 'success');
+    }
+    
+    // ============================================================================
+    // NAVIGATION
+    // ============================================================================
+    function showPage(pageId) {
+      // Update nav links
+      document.querySelectorAll('.nav-link').forEach(link => {
+        link.classList.remove('active');
+      });
+      event.target.closest('.nav-link')?.classList.add('active');
+      
+      // Update page sections
+      document.querySelectorAll('.page-section').forEach(section => {
+        section.classList.remove('active');
+      });
+      document.getElementById('page-' + pageId).classList.add('active');
+      
+      // Update page title
+      const titles = {
+        'dashboard': 'Dashboard',
+        'guru': 'Data Guru',
+        'kelas': 'Data Kelas',
+        'mapel': 'Struktur Mapel',
+        'jadwal': 'Jadwal Pelajaran'
+      };
+      document.getElementById('pageTitle').textContent = titles[pageId] || 'Dashboard';
+      
+      // Close mobile sidebar
+      document.getElementById('sidebar').classList.remove('active');
+      
+      // Load data for specific pages
+      if (pageId === 'guru') renderGuruTable();
+      if (pageId === 'kelas') renderKelasTable();
+      if (pageId === 'mapel') renderMapelTable();
+      if (pageId === 'jadwal') {
+        updateFilterKelas();
+        renderJadwal();
+      }
+    }
+    
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('active');
+    }
+    
+    // ============================================================================
+    // DATA LOADING
+    // ============================================================================
+    function loadAllData() {
+      showLoading('Memuat data...');
+      
+      google.script.run
+        .withSuccessHandler(function(stats) {
+          updateDashboard(stats);
+          guruList = [];
+          kelasList = [];
+          mapelList = [];
+          
+          // Load guru
+          google.script.run
+            .withSuccessHandler(function(data) {
+              guruList = data;
+              // Load kelas
+              google.script.run
+                .withSuccessHandler(function(data) {
+                  kelasList = data;
+                  // Load mapel
+                  google.script.run
+                    .withSuccessHandler(function(data) {
+                      mapelList = data;
+                      // Load jadwal
+                      google.script.run
+                        .withSuccessHandler(function(data) {
+                          jadwalList = data;
+                          hideLoading();
+                          updateDashboardStats();
+                        })
+                        .withFailureHandler(hideLoading)
+                        .getJadwal();
+                    })
+                    .withFailureHandler(hideLoading)
+                    .getMapelList();
+                })
+                .withFailureHandler(hideLoading)
+                .getKelasList();
+            })
+            .withFailureHandler(hideLoading)
+            .getGuruList();
+        })
+        .withFailureHandler(function(error) {
+          hideLoading();
+          showToast('Gagal memuat data: ' + error, 'error');
+        })
+        .getDashboardStats();
+    }
+    
+    function refreshData() {
+      loadAllData();
+      showToast('Data berhasil diperbarui!', 'success');
+    }
+    
+    // ============================================================================
+    // DASHBOARD
+    // ============================================================================
+    function updateDashboard(stats) {
+      document.getElementById('statTotalGuru').textContent = stats.totalGuru;
+      document.getElementById('statTotalKelas').textContent = stats.totalKelas;
+      document.getElementById('statTotalMapel').textContent = stats.totalMapel;
+      document.getElementById('statTotalJadwal').textContent = stats.totalJadwal;
+      document.getElementById('statGuruKelas').textContent = stats.guruKelas;
+      document.getElementById('statGuruMapel').textContent = stats.guruMapel;
+      document.getElementById('statTotalJamGuru').textContent = stats.totalJamGuru;
+    }
+    
+    function updateDashboardStats() {
+      google.script.run
+        .withSuccessHandler(updateDashboard)
+        .getDashboardStats();
+    }
+    
+    // ============================================================================
+    // GURU FUNCTIONS
+    // ============================================================================
+    function renderGuruTable() {
+      const tbody = document.getElementById('guruTableBody');
+      
+      if (guruList.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" style="text-align: center;">
+              <div class="empty-state">
+                <span class="material-icons-round empty-state-icon">people</span>
+                <h3>Belum ada data guru</h3>
+                <p>Klik tombol "Tambah Guru" untuk menambahkan data</p>
+              </div>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+      
+      tbody.innerHTML = guruList.map((guru, index) => `
+        <tr>
+          <td>${index + 1}</td>
+          <td><strong>${guru.nama}</strong></td>
+          <td><span class="badge ${guru.jenis === 'Guru Kelas' ? 'badge-success' : 'badge-info'}">${guru.jenis}</span></td>
+          <td>${guru.mapel}</td>
+          <td>${guru.maxJam}</td>
+          <td><span class="badge ${guru.status === 'Aktif' ? 'badge-success' : 'badge-danger'}">${guru.status}</span></td>
+          <td>
+            <div class="action-buttons">
+              <button class="btn-action edit" onclick="editGuru('${guru.id}')" title="Edit">
+                <span class="material-icons-round">edit</span>
+              </button>
+              <button class="btn-action delete" onclick="deleteGuru('${guru.id}')" title="Hapus">
+                <span class="material-icons-round">delete</span>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    }
+    
+    function openModalGuru() {
+      document.getElementById('modalGuruTitle').textContent = 'Tambah Guru';
+      document.getElementById('formGuru').reset();
+      document.getElementById('guruId').value = '';
+      document.getElementById('guruMaxJam').value = '24';
+      document.getElementById('guruStatus').value = 'Aktif';
+      document.getElementById('modalGuru').classList.add('active');
+      toggleMapelInput();
+    }
+    
+    function closeModalGuru() {
+      document.getElementById('modalGuru').classList.remove('active');
+    }
+    
+    function toggleMapelInput() {
+      const jenis = document.getElementById('guruJenis').value;
+      const mapelGroup = document.getElementById('guruMapelGroup');
+      const mapelSelect = document.getElementById('guruMapel');
+      
+      if (jenis === 'Guru Mapel') {
+        mapelGroup.style.display = 'block';
+        mapelSelect.required = true;
+        
+        // Populate mapel options
+        mapelSelect.innerHTML = '<option value="">Pilih Mapel</option>' +
+          mapelList.map(m => `<option value="${m.nama}">${m.nama}</option>`).join('');
+      } else {
+        mapelGroup.style.display = 'none';
+        mapelSelect.required = false;
+      }
+    }
+    
+    function editGuru(id) {
+      const guru = guruList.find(g => g.id === id);
+      if (!guru) return;
+      
+      document.getElementById('modalGuruTitle').textContent = 'Edit Guru';
+      document.getElementById('guruId').value = guru.id;
+      document.getElementById('guruNama').value = guru.nama;
+      document.getElementById('guruJenis').value = guru.jenis;
+      document.getElementById('guruMapel').value = guru.mapel;
+      document.getElementById('guruMaxJam').value = guru.maxJam;
+      document.getElementById('guruStatus').value = guru.status;
+      
+      toggleMapelInput();
+      document.getElementById('modalGuru').classList.add('active');
+    }
+    
+    function saveGuru() {
+      const data = {
+        id: document.getElementById('guruId').value || null,
+        nama: document.getElementById('guruNama').value,
+        jenis: document.getElementById('guruJenis').value,
+        mapel: document.getElementById('guruJenis').value === 'Guru Kelas' 
+          ? 'Semua Mapel' 
+          : document.getElementById('guruMapel').value,
+        maxJam: parseInt(document.getElementById('guruMaxJam').value),
+        status: document.getElementById('guruStatus').value
+      };
+      
+      if (!data.nama || !data.jenis) {
+        showToast('Mohon lengkapi data yang wajib diisi!', 'warning');
+        return;
+      }
+      
+      showLoading('Menyimpan data...');
+      
+      google.script.run
+        .withSuccessHandler(function(result) {
+          hideLoading();
+          if (result.success) {
+            closeModalGuru();
+            showToast(result.message, 'success');
+            loadAllData();
+          } else {
+            showToast(result.error || 'Gagal menyimpan!', 'error');
+          }
+        })
+        .withFailureHandler(function(error) {
+          hideLoading();
+          showToast('Terjadi kesalahan: ' + error, 'error');
+        })
+        .saveGuru(data);
+    }
+    
+    function deleteGuru(id) {
+      if (!confirm('Yakin ingin menghapus data guru ini?')) return;
+      
+      showLoading('Menghapus data...');
+      
+      google.script.run
+        .withSuccessHandler(function(result) {
+          hideLoading();
+          if (result.success) {
+            showToast(result.message, 'success');
+            loadAllData();
+          } else {
+            showToast(result.error || 'Gagal menghapus!', 'error');
+          }
+        })
+        .withFailureHandler(function(error) {
+          hideLoading();
+          showToast('Terjadi kesalahan: ' + error, 'error');
+        })
+        .deleteGuru(id);
+    }
+    
+    // ============================================================================
+    // KELAS FUNCTIONS
+    // ============================================================================
+    function renderKelasTable() {
+      const tbody = document.getElementById('kelasTableBody');
+      
+      if (kelasList.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" style="text-align: center;">
+              <div class="empty-state">
+                <span class="material-icons-round empty-state-icon">class</span>
+                <h3>Belum ada data kelas</h3>
+                <p>Klik tombol "Tambah Kelas" untuk menambahkan data</p>
+              </div>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+      
+      tbody.innerHTML = kelasList.map((kelas, index) => `
+        <tr>
+          <td>${index + 1}</td>
+          <td><strong>${kelas.nama}</strong></td>
+          <td><span class="badge badge-info">Kelas ${kelas.tingkat}</span></td>
+          <td>${kelas.jamPerHari} jam</td>
+          <td>${kelas.guruKelas || '-'}</td>
+          <td><span class="badge ${kelas.status === 'Aktif' ? 'badge-success' : 'badge-danger'}">${kelas.status}</span></td>
+          <td>
+            <div class="action-buttons">
+              <button class="btn-action edit" onclick="editKelas('${kelas.id}')" title="Edit">
+                <span class="material-icons-round">edit</span>
+              </button>
+              <button class="btn-action delete" onclick="deleteKelas('${kelas.id}')" title="Hapus">
+                <span class="material-icons-round">delete</span>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    }
+    
+    function openModalKelas() {
+      document.getElementById('modalKelasTitle').textContent = 'Tambah Kelas';
+      document.getElementById('formKelas').reset();
+      document.getElementById('kelasId').value = '';
+      document.getElementById('kelasJamPerHari').value = '6';
+      document.getElementById('kelasStatus').value = 'Aktif';
+      document.getElementById('modalKelas').classList.add('active');
+      updateGuruKelasSelect();
+    }
+    
+    function closeModalKelas() {
+      document.getElementById('modalKelas').classList.remove('active');
+    }
+    
+    function updateGuruKelasSelect() {
+      const select = document.getElementById('kelasGuruKelas');
+      const guruKelasList = guruList.filter(g => g.jenis === 'Guru Kelas' && g.status === 'Aktif');
+      
+      select.innerHTML = '<option value="">Pilih Guru Kelas</option>' +
+        guruKelasList.map(g => `<option value="${g.nama}">${g.nama}</option>`).join('');
+    }
+    
+    function editKelas(id) {
+      const kelas = kelasList.find(k => k.id === id);
+      if (!kelas) return;
+      
+      document.getElementById('modalKelasTitle').textContent = 'Edit Kelas';
+      document.getElementById('kelasId').value = kelas.id;
+      document.getElementById('kelasNama').value = kelas.nama;
+      document.getElementById('kelasTingkat').value = kelas.tingkat;
+      document.getElementById('kelasJamPerHari').value = kelas.jamPerHari;
+      document.getElementById('kelasGuruKelas').value = kelas.guruKelas;
+      document.getElementById('kelasStatus').value = kelas.status;
+      
+      updateGuruKelasSelect();
+      document.getElementById('modalKelas').classList.add('active');
+    }
+    
+    function saveKelas() {
+      const data = {
+        id: document.getElementById('kelasId').value || null,
+        nama: document.getElementById('kelasNama').value,
+        tingkat: parseInt(document.getElementById('kelasTingkat').value),
+        jamPerHari: parseInt(document.getElementById('kelasJamPerHari').value),
+        guruKelas: document.getElementById('kelasGuruKelas').value,
+        status: document.getElementById('kelasStatus').value
+      };
+      
+      if (!data.nama || !data.tingkat) {
+        showToast('Mohon lengkapi data yang wajib diisi!', 'warning');
+        return;
+      }
+      
+      showLoading('Menyimpan data...');
+      
+      google.script.run
+        .withSuccessHandler(function(result) {
+          hideLoading();
+          if (result.success) {
+            closeModalKelas();
+            showToast(result.message, 'success');
+            loadAllData();
+          } else {
+            showToast(result.error || 'Gagal menyimpan!', 'error');
+          }
+        })
+        .withFailureHandler(function(error) {
+          hideLoading();
+          showToast('Terjadi kesalahan: ' + error, 'error');
+        })
+        .saveKelas(data);
+    }
+    
+    function deleteKelas(id) {
+      if (!confirm('Yakin ingin menghapus data kelas ini?')) return;
+      
+      showLoading('Menghapus data...');
+      
+      google.script.run
+        .withSuccessHandler(function(result) {
+          hideLoading();
+          if (result.success) {
+            showToast(result.message, 'success');
+            loadAllData();
+          } else {
+            showToast(result.error || 'Gagal menghapus!', 'error');
+          }
+        })
+        .withFailureHandler(function(error) {
+          hideLoading();
+          showToast('Terjadi kesalahan: ' + error, 'error');
+        })
+        .deleteKelas(id);
+    }
+    
+    // ============================================================================
+    // MAPEL FUNCTIONS
+    // ============================================================================
+    function renderMapelTable() {
+      const tbody = document.getElementById('mapelTableBody');
+      
+      if (mapelList.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" style="text-align: center;">
+              <div class="empty-state">
+                <span class="material-icons-round empty-state-icon">menu_book</span>
+                <h3>Belum ada data mapel</h3>
+                <p>Klik tombol "Tambah Mapel" untuk menambahkan data</p>
+              </div>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+      
+      tbody.innerHTML = mapelList.map((mapel, index) => `
+        <tr>
+          <td>${index + 1}</td>
+          <td><strong>${mapel.nama}</strong></td>
+          <td>${mapel.jamKls13}</td>
+          <td>${mapel.jamKls46}</td>
+          <td><span class="badge ${mapel.kategori === 'Guru Kelas' ? 'badge-success' : 'badge-info'}">${mapel.kategori}</span></td>
+          <td><span class="badge" style="background: ${mapel.warna}; color: white;">${mapel.warna}</span></td>
+          <td>
+            <div class="action-buttons">
+              <button class="btn-action edit" onclick="editMapel('${mapel.id}')" title="Edit">
+                <span class="material-icons-round">edit</span>
+              </button>
+              <button class="btn-action delete" onclick="deleteMapel('${mapel.id}')" title="Hapus">
+                <span class="material-icons-round">delete</span>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    }
+    
+    function openModalMapel() {
+      document.getElementById('modalMapelTitle').textContent = 'Tambah Mapel';
+      document.getElementById('formMapel').reset();
+      document.getElementById('mapelId').value = '';
+      document.getElementById('mapelWarna').value = '#4CAF50';
+      document.getElementById('modalMapel').classList.add('active');
+    }
+    
+    function closeModalMapel() {
+      document.getElementById('modalMapel').classList.remove('active');
+    }
+    
+    function initColorPicker() {
+      document.querySelectorAll('.color-option').forEach(option => {
+        option.addEventListener('click', function() {
+          document.querySelectorAll('.color-option').forEach(o => o.classList.remove('selected'));
+          this.classList.add('selected');
+          document.getElementById('mapelWarna').value = this.dataset.color;
+        });
+      });
+    }
+    
+    function editMapel(id) {
+      const mapel = mapelList.find(m => m.id === id);
+      if (!mapel) return;
+      
+      document.getElementById('modalMapelTitle').textContent = 'Edit Mapel';
+      document.getElementById('mapelId').value = mapel.id;
+      document.getElementById('mapelNama').value = mapel.nama;
+      document.getElementById('mapelJamKls13').value = mapel.jamKls13;
+      document.getElementById('mapelJamKls46').value = mapel.jamKls46;
+      document.getElementById('mapelKategori').value = mapel.kategori;
+      document.getElementById('mapelWarna').value = mapel.warna;
+      
+      // Select color
+      document.querySelectorAll('.color-option').forEach(o => {
+        o.classList.toggle('selected', o.dataset.color === mapel.warna);
+      });
+      
+      document.getElementById('modalMapel').classList.add('active');
+    }
+    
+    function saveMapel() {
+      const data = {
+        id: document.getElementById('mapelId').value || null,
+        nama: document.getElementById('mapelNama').value,
+        jamKls13: parseInt(document.getElementById('mapelJamKls13').value),
+        jamKls46: parseInt(document.getElementById('mapelJamKls46').value),
+        kategori: document.getElementById('mapelKategori').value,
+        warna: document.getElementById('mapelWarna').value
+      };
+      
+      if (!data.nama) {
+        showToast('Mohon lengkapi nama mata pelajaran!', 'warning');
+        return;
+      }
+      
+      showLoading('Menyimpan data...');
+      
+      google.script.run
+        .withSuccessHandler(function(result) {
+          hideLoading();
+          if (result.success) {
+            closeModalMapel();
+            showToast(result.message, 'success');
+            loadAllData();
+          } else {
+            showToast(result.error || 'Gagal menyimpan!', 'error');
+          }
+        })
+        .withFailureHandler(function(error) {
+          hideLoading();
+          showToast('Terjadi kesalahan: ' + error, 'error');
+        })
+        .saveMapel(data);
+    }
+    
+    function deleteMapel(id) {
+      if (!confirm('Yakin ingin menghapus mata pelajaran ini?')) return;
+      
+      showLoading('Menghapus data...');
+      
+      google.script.run
+        .withSuccessHandler(function(result) {
+          hideLoading();
+          if (result.success) {
+            showToast(result.message, 'success');
+            loadAllData();
+          } else {
+            showToast(result.error || 'Gagal menghapus!', 'error');
+          }
+        })
+        .withFailureHandler(function(error) {
+          hideLoading();
+          showToast('Terjadi kesalahan: ' + error, 'error');
+        })
+        .deleteMapel(id);
+    }
+    
+    // ============================================================================
+    // JADWAL FUNCTIONS
+    // ============================================================================
+    function generateJadwal() {
+      if (guruList.length === 0 || kelasList.length === 0) {
+        showToast('Data guru atau kelas masih kosong!', 'warning');
+        return;
+      }
+      
+      showLoading('Sedang generate jadwal...<br><small>Proses ini mungkin memakan waktu beberapa detik</small>');
+      
+      google.script.run
+        .withSuccessHandler(function(result) {
+          hideLoading();
+          if (result.success) {
+            showToast(result.message, 'success');
+            loadAllData();
+            showPage('jadwal');
+          } else {
+            showToast(result.error || 'Gagal generate jadwal!', 'error');
+          }
+        })
+        .withFailureHandler(function(error) {
+          hideLoading();
+          showToast('Terjadi kesalahan: ' + error, 'error');
+        })
+        .generateJadwal();
+    }
+    
+    function updateFilterKelas() {
+      const select = document.getElementById('filterKelas');
+      select.innerHTML = '<option value="">Semua Kelas</option>' +
+        kelasList.map(k => `<option value="${k.id}">${k.nama}</option>`).join('');
+    }
+    
+    function renderJadwal() {
+      const filterKelas = document.getElementById('filterKelas').value;
+      const container = document.getElementById('jadwalContainer');
+      
+      let filteredJadwal = jadwalList;
+      if (filterKelas) {
+        filteredJadwal = jadwalList.filter(j => j.kelas === filterKelas);
+      }
+      
+      if (filteredJadwal.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <span class="material-icons-round empty-state-icon">event_busy</span>
+            <h3>Belum ada jadwal</h3>
+            <p>Generate jadwal terlebih dahulu dari Dashboard</p>
+            <button class="btn btn-primary" onclick="showPage('dashboard'); generateJadwal();">
+              <span class="material-icons-round">play_arrow</span>
+              Generate Jadwal
+            </button>
+          </div>
+        `;
+        return;
+      }
+      
+      // Group by kelas
+      const jadwalByKelas = {};
+      filteredJadwal.forEach(j => {
+        if (!jadwalByKelas[j.kelas]) {
+          jadwalByKelas[j.kelas] = [];
+        }
+        jadwalByKelas[j.kelas].push(j);
+      });
+      
+      // Render jadwal untuk setiap kelas
+      let html = '';
+      Object.keys(jadwalByKelas).forEach(kelasId => {
+        const kelas = kelasList.find(k => k.id === kelasId);
+        const kelasJadwal = jadwalByKelas[kelasId];
+        
+        html += `
+          <div style="margin-bottom: 32px;">
+            <h3 style="margin-bottom: 16px; color: var(--primary-color);">
+              <span class="material-icons-round">class</span>
+              ${kelas ? kelas.nama : kelasId}
+            </h3>
+            <div class="jadwal-grid">
+              <table class="jadwal-table">
+                <thead>
+                  <tr>
+                    <th class="jam-column">Jam</th>
+                    ${CONFIG_HARI.map(hari => `<th>${hari}</th>`).join('')}
+                  </tr>
+                </thead>
+                <tbody>
+                  ${renderJadwalRows(kelasJadwal)}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      });
+      
+      container.innerHTML = html;
+    }
+    
+    const CONFIG_HARI = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    
+    function renderJadwalRows(kelasJadwal) {
+      // Find max jam
+      const maxJam = Math.max(...kelasJadwal.map(j => j.jamKe));
+      
+      let html = '';
+      for (let jam = 1; jam <= maxJam; jam++) {
+        html += '<tr>';
+        html += `<td class="jam-column">${jam}</td>`;
+        
+        CONFIG_HARI.forEach(hari => {
+          const slot = kelasJadwal.find(j => j.hari === hari && j.jamKe === jam);
+          if (slot) {
+            html += `
+              <td class="jadwal-cell">
+                <div class="jadwal-item" style="background: ${slot.warna || '#4CAF50'};">
+                  <strong>${slot.mapel}</strong>
+                  <small>${slot.guru}</small>
+                </div>
+              </td>
+            `;
+          } else {
+            html += '<td class="jadwal-cell"></td>';
+          }
+        });
+        
+        html += '</tr>';
+      }
+      
+      return html;
+    }
+    
+    function resetJadwal() {
+      if (!confirm('Yakin ingin mereset semua jadwal? Data jadwal akan dihapus.')) return;
+      
+      showLoading('Mereset jadwal...');
+      
+      google.script.run
+        .withSuccessHandler(function(result) {
+          hideLoading();
+          if (result.success) {
+            showToast(result.message, 'success');
+            jadwalList = [];
+            renderJadwal();
+            updateDashboardStats();
+          } else {
+            showToast(result.error || 'Gagal mereset jadwal!', 'error');
+          }
+        })
+        .withFailureHandler(function(error) {
+          hideLoading();
+          showToast('Terjadi kesalahan: ' + error, 'error');
+        })
+        .resetJadwal();
+    }
+    
+    function printJadwal() {
+      window.print();
+    }
+    
+    function exportToExcel() {
+      // Simple CSV export
+      let csv = 'Kelas,Hari,Jam Ke-,Mapel,Guru\n';
+      
+      jadwalList.forEach(j => {
+        csv += `"${j.kelas}","${j.hari}",${j.jamKe},"${j.mapel}","${j.guru}"\n`;
+      });
+      
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'jadwal_pelajaran.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+      
+      showToast('Jadwal berhasil diexport!', 'success');
+    }
+    
+    // ============================================================================
+    // DARK MODE
+    // ============================================================================
+    function toggleDarkMode() {
+      isDarkMode = !isDarkMode;
+      document.documentElement.setAttribute('data-theme', isDarkMode ? 'dark' : 'light');
+      
+      document.getElementById('darkModeIcon').textContent = isDarkMode ? 'light_mode' : 'dark_mode';
+      document.getElementById('topDarkModeIcon').textContent = isDarkMode ? 'light_mode' : 'dark_mode';
+      document.getElementById('darkModeText').textContent = isDarkMode ? 'Light Mode' : 'Dark Mode';
+      
+      localStorage.setItem('darkMode', isDarkMode);
+    }
+    
+    // Load saved dark mode
+    const savedDarkMode = localStorage.getItem('darkMode') === 'true';
+    if (savedDarkMode) {
+      isDarkMode = true;
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+    
+    // ============================================================================
+    // UTILITIES
+    // ============================================================================
+    function showLoading(message = 'Memproses...') {
+      document.getElementById('loadingText').innerHTML = message;
+      document.getElementById('loadingOverlay').classList.add('active');
+    }
+    
+    function hideLoading() {
+      document.getElementById('loadingOverlay').classList.remove('active');
+    }
+    
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const icons = {
+        success: 'check_circle',
+        error: 'error',
+        warning: 'warning',
+        info: 'info'
+      };
+      
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.innerHTML = `
+        <span class="material-icons-round toast-icon">${icons[type]}</span>
+        <span class="toast-message">${message}</span>
+      `;
+      
+      container.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.style.animation = 'toastSlideIn 0.3s ease reverse';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+  </script>
+</body>
+</html>
