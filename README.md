@@ -239,38 +239,41 @@ pembagi-jam-pelajaran/
 
 Ini adalah masalah yang umum terjadi. Ikuti langkah-langkah berikut:
 
-**Langkah 1: Pastikan Database Sudah Di-Setup**
+**Solusi Cepat (Recommended):**
+
+1. **Buka aplikasi web** di browser
+2. **Di Dashboard**, scroll ke bagian **"Pengaturan Data"**
+3. **Klik "Test Database Connection"**
+   - Akan muncul popup yang menampilkan status sheet
+   - Jika ada sheet yang "❌ Tidak ada", lanjut ke langkah berikutnya
+4. **Klik "Reset & Populate Data"**
+   - Tunggu hingga muncul notifikasi sukses
+   - Data akan otomatis ter-load
+5. **Refresh halaman** jika data masih belum muncul
+
+**Solusi Manual dari Google Sheets:**
 
 1. Buka Google Sheets Anda
-2. Lihat di menu atas, apakah ada menu **"🏫 Pembagi Jam Pelajaran"**?
-3. Jika ada, klik menu tersebut → **"📊 Setup Database"**
-4. Tunggu hingga muncul notifikasi "Execution completed"
-5. Refresh halaman web app Anda
-
-**Langkah 2: Cek Sheet di Spreadsheet**
-
-1. Buka Google Sheets
-2. Pastikan sheet-sheet berikut ada:
+2. Cek apakah sheet-sheet berikut ada:
    - `Data Guru`
    - `Data Kelas`
    - `Struktur Mapel`
    - `Hasil Jadwal`
    - `Settings`
-3. Jika tidak ada, jalankan fungsi `setupDatabase` dari Apps Script Editor
+3. Jika tidak ada, buka **Apps Script Editor**
+4. Jalankan fungsi `forceInsertSampleData`:
+   - Pilih `forceInsertSampleData` dari dropdown
+   - Klik **Run** (▶️)
+   - Tunggu "Execution completed"
+5. Refresh web app
 
-**Langkah 3: Gunakan Tombol Reset & Populate Data**
+**Solpsi Manual Dari Menu:**
 
-1. Di aplikasi web, buka **Dashboard**
-2. Scroll ke bawah ke bagian **"Pengaturan Data"**
-3. Klik tombol **"Reset & Populate Data"**
-4. Tunggu proses selesai
-
-**Langkah 4: Cek Console Browser**
-
-1. Tekan `F12` di browser
-2. Buka tab **Console**
-3. Lihat apakah ada error merah
-4. Screenshot error dan periksa detailnya
+1. Buka Google Sheets
+2. Lihat menu **"🏫 Pembagi Jam Pelajaran"** di menu atas
+3. Klik **"📊 Setup Database"**
+4. Tunggu notifikasi eksekusi selesai
+5. Refresh web app
 
 ### Error: "Exception: You do not have permission"
 

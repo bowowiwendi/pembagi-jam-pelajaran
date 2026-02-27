@@ -124,6 +124,147 @@ function setupDatabase() {
   return { success: true, message: 'Database berhasil di-setup!' };
 }
 
+/**
+ * Fungsi untuk mengecek dan memaksa insert data sample
+ * Gunakan jika data tidak muncul
+ */
+function forceInsertSampleData() {
+  Logger.log('=== Starting forceInsertSampleData ===');
+  const ss = getSpreadsheet();
+  
+  // Force insert Guru
+  let guruSheet = ss.getSheetByName(CONFIG.SHEET_NAMES.GURU);
+  if (!guruSheet) {
+    guruSheet = ss.insertSheet(CONFIG.SHEET_NAMES.GURU);
+  }
+  // Clear dan insert ulang
+  if (guruSheet.getLastRow() > 0) {
+    guruSheet.clear();
+  }
+  const guruHeaders = ['ID', 'Nama Guru', 'Jenis Guru', 'Mata Pelajaran', 'Maksimal Jam/Minggu', 'Status', 'Created At'];
+  guruSheet.getRange(1, 1, 1, guruHeaders.length).setValues([guruHeaders]);
+  guruSheet.getRange(1, 1, 1, guruHeaders.length).setFontWeight('bold').setBackground('#4CAF50').setFontColor('white');
+  const guruData = [
+    ['GURU001', 'Ahmad Fauzi', 'Guru Kelas', 'Semua Mapel', 24, 'Aktif', new Date()],
+    ['GURU002', 'Siti Nurhaliza', 'Guru Kelas', 'Semua Mapel', 24, 'Aktif', new Date()],
+    ['GURU003', 'Budi Santoso', 'Guru Mapel', 'PJOK', 18, 'Aktif', new Date()],
+    ['GURU004', 'Fatimah Zahra', 'Guru Mapel', 'Bahasa Inggris', 18, 'Aktif', new Date()],
+    ['GURU005', 'Umar Abdullah', 'Guru Mapel', 'PAI', 18, 'Aktif', new Date()],
+    ['GURU006', 'Aisyah Putri', 'Guru Mapel', 'SBdP', 18, 'Aktif', new Date()]
+  ];
+  if (guruData.length > 0) {
+    guruSheet.getRange(2, 1, guruData.length, guruData[0].length).setValues(guruData);
+  }
+  Logger.log('Guru data inserted: ' + guruData.length + ' rows');
+  
+  // Force insert Kelas
+  let kelasSheet = ss.getSheetByName(CONFIG.SHEET_NAMES.KELAS);
+  if (!kelasSheet) {
+    kelasSheet = ss.insertSheet(CONFIG.SHEET_NAMES.KELAS);
+  }
+  if (kelasSheet.getLastRow() > 0) {
+    kelasSheet.clear();
+  }
+  const kelasHeaders = ['ID', 'Nama Kelas', 'Tingkat', 'Jumlah Jam/Hari', 'Guru Kelas', 'Status', 'Created At'];
+  kelasSheet.getRange(1, 1, 1, kelasHeaders.length).setValues([kelasHeaders]);
+  kelasSheet.getRange(1, 1, 1, kelasHeaders.length).setFontWeight('bold').setBackground('#2196F3').setFontColor('white');
+  const kelasData = [];
+  const kelasNames = ['A', 'B'];
+  let id = 1;
+  for (let tingkat = 1; tingkat <= 6; tingkat++) {
+    for (let paralel of kelasNames) {
+      kelasData.push([
+        'KLS' + String(id).padStart(3, '0'),
+        'Kelas ' + tingkat + paralel,
+        tingkat,
+        6,
+        '',
+        'Aktif',
+        new Date()
+      ]);
+      id++;
+    }
+  }
+  if (kelasData.length > 0) {
+    kelasSheet.getRange(2, 1, kelasData.length, kelasData[0].length).setValues(kelasData);
+  }
+  Logger.log('Kelas data inserted: ' + kelasData.length + ' rows');
+  
+  // Force insert Mapel
+  let mapelSheet = ss.getSheetByName(CONFIG.SHEET_NAMES.MAPEL);
+  if (!mapelSheet) {
+    mapelSheet = ss.insertSheet(CONFIG.SHEET_NAMES.MAPEL);
+  }
+  if (mapelSheet.getLastRow() > 0) {
+    mapelSheet.clear();
+  }
+  const mapelHeaders = ['ID', 'Mata Pelajaran', 'Jam/Minggu (Kls 1-3)', 'Jam/Minggu (Kls 4-6)', 'Kategori', 'Warna', 'Created At'];
+  mapelSheet.getRange(1, 1, 1, mapelHeaders.length).setValues([mapelHeaders]);
+  mapelSheet.getRange(1, 1, 1, mapelHeaders.length).setFontWeight('bold').setBackground('#9C27B0').setFontColor('white');
+  const mapelData = [
+    ['MAPEL001', 'PKn', 4, 3, 'Guru Kelas', '#FFB74D', new Date()],
+    ['MAPEL002', 'Bahasa Indonesia', 8, 7, 'Guru Kelas', '#64B5F6', new Date()],
+    ['MAPEL003', 'Matematika', 5, 5, 'Guru Kelas', '#81C784', new Date()],
+    ['MAPEL004', 'IPA', 0, 4, 'Guru Kelas', '#4DB6AC', new Date()],
+    ['MAPEL005', 'IPS', 0, 3, 'Guru Kelas', '#A1887F', new Date()],
+    ['MAPEL006', 'PJOK', 3, 3, 'Guru Mapel', '#E57373', new Date()],
+    ['MAPEL007', 'Bahasa Inggris', 2, 2, 'Guru Mapel', '#BA68C8', new Date()],
+    ['MAPEL008', 'PAI', 4, 4, 'Guru Mapel', '#4CAF50', new Date()],
+    ['MAPEL009', 'SBdP', 3, 3, 'Guru Mapel', '#F06292', new Date()],
+    ['MAPEL010', 'Tematik', 10, 0, 'Guru Kelas', '#FFF176', new Date()]
+  ];
+  if (mapelData.length > 0) {
+    mapelSheet.getRange(2, 1, mapelData.length, mapelData[0].length).setValues(mapelData);
+  }
+  Logger.log('Mapel data inserted: ' + mapelData.length + ' rows');
+  
+  Logger.log('=== forceInsertSampleData completed ===');
+  return { 
+    success: true, 
+    message: 'Data sample berhasil di-insert!',
+    guruCount: guruData.length,
+    kelasCount: kelasData.length,
+    mapelCount: mapelData.length
+  };
+}
+
+/**
+ * Test fungsi untuk mengecek koneksi data
+ */
+function testDataConnection() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheets = ss.getSheets();
+    const sheetNames = sheets.map(s => s.getName());
+    
+    const result = {
+      spreadsheetName: ss.getName(),
+      sheetNames: sheetNames,
+      guruSheetExists: sheetNames.includes(CONFIG.SHEET_NAMES.GURU),
+      kelasSheetExists: sheetNames.includes(CONFIG.SHEET_NAMES.KELAS),
+      mapelSheetExists: sheetNames.includes(CONFIG.SHEET_NAMES.MAPEL)
+    };
+    
+    // Cek isi masing-masing sheet
+    if (result.guruSheetExists) {
+      const guruSheet = ss.getSheetByName(CONFIG.SHEET_NAMES.GURU);
+      result.guruRowCount = guruSheet.getLastRow();
+    }
+    if (result.kelasSheetExists) {
+      const kelasSheet = ss.getSheetByName(CONFIG.SHEET_NAMES.KELAS);
+      result.kelasRowCount = kelasSheet.getLastRow();
+    }
+    if (result.mapelSheetExists) {
+      const mapelSheet = ss.getSheetByName(CONFIG.SHEET_NAMES.MAPEL);
+      result.mapelRowCount = mapelSheet.getLastRow();
+    }
+    
+    return result;
+  } catch (e) {
+    return { error: e.toString() };
+  }
+}
+
 function setupGuruSheet(ss) {
   let sheet = ss.getSheetByName(CONFIG.SHEET_NAMES.GURU);
   if (!sheet) {

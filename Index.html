@@ -1116,11 +1116,21 @@
           
           <div style="padding: 20px; background: #fff3cd; border-radius: 8px; margin-bottom: 16px;">
             <p style="margin-bottom: 12px;"><strong>⚠️ Data tidak muncul?</strong></p>
-            <p style="color: #666; margin-bottom: 12px;">Jika data guru, kelas, dan mapel tidak muncul, klik tombol di bawah untuk reset dan populate ulang data dari spreadsheet.</p>
-            <button class="btn btn-warning btn-sm" onclick="forceReloadData()" style="background: #ffc107; color: #000;">
-              <span class="material-icons-round">refresh</span>
-              Reset & Populate Data
-            </button>
+            <p style="color: #666; margin-bottom: 12px;">Jika data guru, kelas, dan mapel tidak muncul, ikuti langkah berikut:</p>
+            <ol style="color: #666; margin-bottom: 12px; padding-left: 20px;">
+              <li>Klik "Test Database Connection" untuk cek sheet</li>
+              <li>Jika sheet tidak ada, klik "Reset & Populate Data"</li>
+            </ol>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <button class="btn btn-info btn-sm" onclick="testDatabaseConnection()" style="background: #17a2b8; color: #fff;">
+                <span class="material-icons-round">fact_check</span>
+                Test Database Connection
+              </button>
+              <button class="btn btn-warning btn-sm" onclick="forceReloadData()" style="background: #ffc107; color: #000;">
+                <span class="material-icons-round">refresh</span>
+                Reset & Populate Data
+              </button>
+            </div>
           </div>
         </div>
         
@@ -2398,6 +2408,9 @@
       google.script.run
         .withSuccessHandler(function(result) {
           console.log('Force reload result:', result);
+          if (result && result.success) {
+            showToast(result.message || 'Data berhasil di-reload!', 'success');
+          }
           loadAllData();
         })
         .withFailureHandler(function(error) {
@@ -2405,7 +2418,41 @@
           console.error('Force reload error:', error);
           showToast('Error: ' + error, 'error');
         })
-        .setupDatabase();
+        .forceInsertSampleData();
+    }
+    
+    /**
+     * Test koneksi database
+     */
+    function testDatabaseConnection() {
+      showLoading('Mengecek koneksi database...');
+      
+      google.script.run
+        .withSuccessHandler(function(result) {
+          hideLoading();
+          console.log('Database test result:', result);
+          
+          let message = '✅ Spreadsheet: ' + result.spreadsheetName + '\n';
+          message += '✅ Sheets: ' + result.sheetNames.join(', ') + '\n\n';
+          message += 'Status Sheet:\n';
+          message += '- Data Guru: ' + (result.guruSheetExists ? '✅ Ada (' + result.guruRowCount + ' baris)' : '❌ Tidak ada') + '\n';
+          message += '- Data Kelas: ' + (result.kelasSheetExists ? '✅ Ada (' + result.kelasRowCount + ' baris)' : '❌ Tidak ada') + '\n';
+          message += '- Struktur Mapel: ' + (result.mapelSheetExists ? '✅ Ada (' + result.mapelRowCount + ' baris)' : '❌ Tidak ada');
+          
+          alert(message);
+          
+          if (!result.guruSheetExists || !result.kelasSheetExists || !result.mapelSheetExists) {
+            if (confirm('Sheet tidak lengkap! Ingin menjalankan force insert data sample?')) {
+              forceReloadData();
+            }
+          }
+        })
+        .withFailureHandler(function(error) {
+          hideLoading();
+          console.error('Database test error:', error);
+          showToast('Error: ' + error, 'error');
+        })
+        .testDataConnection();
     }
     
     function showLoading(message = 'Memproses...') {
