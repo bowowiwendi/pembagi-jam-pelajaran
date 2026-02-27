@@ -1918,17 +1918,17 @@
       tbody.innerHTML = guruList.map((guru, index) => `
         <tr>
           <td>${index + 1}</td>
-          <td><strong>${guru.nama}</strong></td>
-          <td><span class="badge ${guru.jenis === 'Guru Kelas' ? 'badge-success' : 'badge-info'}">${guru.jenis}</span></td>
-          <td>${guru.mapel || 'Semua Mapel'}</td>
-          <td>${guru.maxJam}</td>
-          <td><span class="badge ${guru.status === 'Aktif' ? 'badge-success' : 'badge-danger'}">${guru.status}</span></td>
+          <td><strong>${guru['Nama Guru'] || guru.nama}</strong></td>
+          <td><span class="badge ${guru['Jenis Guru'] === 'Guru Kelas' ? 'badge-success' : 'badge-info'}">${guru['Jenis Guru'] || guru.jenis}</span></td>
+          <td>${guru['Mata Pelajaran'] || guru.mapel || 'Semua Mapel'}</td>
+          <td>${guru['Maksimal Jam/Minggu'] || guru.maxJam}</td>
+          <td><span class="badge ${guru['Status'] === 'Aktif' ? 'badge-success' : 'badge-danger'}">${guru['Status'] || guru.status}</span></td>
           <td>
             <div class="action-buttons">
-              <button class="btn-action edit" onclick="editGuru('${guru.id}')" title="Edit">
+              <button class="btn-action edit" onclick="editGuru('${guru['ID'] || guru.id}')" title="Edit">
                 <span class="material-icons-round">edit</span>
               </button>
-              <button class="btn-action delete" onclick="deleteGuru('${guru.id}')" title="Hapus">
+              <button class="btn-action delete" onclick="deleteGuru('${guru['ID'] || guru.id}')" title="Hapus">
                 <span class="material-icons-round">delete</span>
               </button>
             </div>
@@ -1936,7 +1936,7 @@
         </tr>
       `).join('');
     }
-    
+
     function openModalGuru() {
       document.getElementById('modalGuruTitle').textContent = 'Tambah Guru';
       document.getElementById('formGuru').reset();
@@ -1946,40 +1946,40 @@
       document.getElementById('modalGuru').classList.add('active');
       toggleMapelInput();
     }
-    
+
     function closeModalGuru() {
       document.getElementById('modalGuru').classList.remove('active');
     }
-    
+
     function toggleMapelInput() {
       const jenis = document.getElementById('guruJenis').value;
       const mapelGroup = document.getElementById('guruMapelGroup');
       const mapelSelect = document.getElementById('guruMapel');
-      
+
       if (jenis === 'Guru Mapel') {
         mapelGroup.style.display = 'block';
         mapelSelect.required = true;
-        
+
         // Populate mapel options
         mapelSelect.innerHTML = '<option value="">Pilih Mapel</option>' +
-          mapelList.map(m => `<option value="${m.nama}">${m.nama}</option>`).join('');
+          mapelList.map(m => `<option value="${m['Mata Pelajaran'] || m.nama}">${m['Mata Pelajaran'] || m.nama}</option>`).join('');
       } else {
         mapelGroup.style.display = 'none';
         mapelSelect.required = false;
       }
     }
-    
+
     function editGuru(id) {
-      const guru = guruList.find(g => g.id === id);
+      const guru = guruList.find(g => g['ID'] === id || g.ID === id);
       if (!guru) return;
       
       document.getElementById('modalGuruTitle').textContent = 'Edit Guru';
-      document.getElementById('guruId').value = guru.id;
-      document.getElementById('guruNama').value = guru.nama;
-      document.getElementById('guruJenis').value = guru.jenis;
-      document.getElementById('guruMapel').value = guru.mapel;
-      document.getElementById('guruMaxJam').value = guru.maxJam;
-      document.getElementById('guruStatus').value = guru.status;
+      document.getElementById('guruId').value = guru['ID'] || guru.id;
+      document.getElementById('guruNama').value = guru['Nama Guru'] || guru.nama;
+      document.getElementById('guruJenis').value = guru['Jenis Guru'] || guru.jenis;
+      document.getElementById('guruMapel').value = guru['Mata Pelajaran'] || guru.mapel;
+      document.getElementById('guruMaxJam').value = guru['Maksimal Jam/Minggu'] || guru.maxJam;
+      document.getElementById('guruStatus').value = guru['Status'] || guru.status;
       
       toggleMapelInput();
       document.getElementById('modalGuru').classList.add('active');
@@ -2004,26 +2004,58 @@
       
       showLoading('Menyimpan data...');
       
-      google.script.run
-        .withSuccessHandler(function(result) {
-          hideLoading();
-          if (result.success) {
-            closeModalGuru();
-            showToast(result.message, 'success');
-            loadAllData();
-          } else {
-            showToast(result.error || 'Gagal menyimpan!', 'error');
-          }
-        })
-        .withFailureHandler(function(error) {
-          hideLoading();
-          showToast('Terjadi kesalahan: ' + error, 'error');
-        })
-        .saveGuru(data);
+      // Check if update or create
+      if (data.id) {
+        // Update - need rowIndex
+        const guru = guruList.find(g => g.ID === data.id);
+        if (guru) {
+          data.rowIndex = guru.rowIndex;
+          google.script.run
+            .withSuccessHandler(function(result) {
+              hideLoading();
+              if (result.success) {
+                closeModalGuru();
+                showToast(result.message, 'success');
+                refreshGuruData();
+              } else {
+                showToast(result.error || 'Gagal menyimpan!', 'error');
+              }
+            })
+            .withFailureHandler(function(error) {
+              hideLoading();
+              showToast('Terjadi kesalahan: ' + error, 'error');
+            })
+            .updateGuru(data);
+        }
+      } else {
+        // Create
+        google.script.run
+          .withSuccessHandler(function(result) {
+            hideLoading();
+            if (result.success) {
+              closeModalGuru();
+              showToast(result.message, 'success');
+              refreshGuruData();
+            } else {
+              showToast(result.error || 'Gagal menyimpan!', 'error');
+            }
+          })
+          .withFailureHandler(function(error) {
+            hideLoading();
+            showToast('Terjadi kesalahan: ' + error, 'error');
+          })
+          .simpanGuru(data);
+      }
     }
     
     function deleteGuru(id) {
       if (!confirm('Yakin ingin menghapus data guru ini?')) return;
+      
+      const guru = guruList.find(g => g.ID === id);
+      if (!guru) {
+        showToast('Data tidak ditemukan!', 'error');
+        return;
+      }
       
       showLoading('Menghapus data...');
       
@@ -2032,7 +2064,7 @@
           hideLoading();
           if (result.success) {
             showToast(result.message, 'success');
-            loadAllData();
+            refreshGuruData();
           } else {
             showToast(result.error || 'Gagal menghapus!', 'error');
           }
@@ -2041,7 +2073,7 @@
           hideLoading();
           showToast('Terjadi kesalahan: ' + error, 'error');
         })
-        .deleteGuru(id);
+        .hapusGuru(guru.rowIndex);
     }
     
     // ============================================================================
@@ -2070,17 +2102,17 @@
       tbody.innerHTML = kelasList.map((kelas, index) => `
         <tr>
           <td>${index + 1}</td>
-          <td><strong>${kelas.nama}</strong></td>
-          <td><span class="badge badge-info">Kelas ${kelas.tingkat}</span></td>
-          <td>${kelas.jamPerHari} jam</td>
-          <td>${kelas.guruKelas || '-'}</td>
-          <td><span class="badge ${kelas.status === 'Aktif' ? 'badge-success' : 'badge-danger'}">${kelas.status}</span></td>
+          <td><strong>${kelas['Nama Kelas'] || kelas.nama}</strong></td>
+          <td><span class="badge badge-info">Kelas ${kelas['Tingkat'] || kelas.tingkat}</span></td>
+          <td>${kelas['Jumlah Jam/Hari'] || kelas.jamPerHari} jam</td>
+          <td>${kelas['Guru Kelas'] || kelas.guruKelas || '-'}</td>
+          <td><span class="badge ${kelas['Status'] === 'Aktif' ? 'badge-success' : 'badge-danger'}">${kelas['Status'] || kelas.status}</span></td>
           <td>
             <div class="action-buttons">
-              <button class="btn-action edit" onclick="editKelas('${kelas.id}')" title="Edit">
+              <button class="btn-action edit" onclick="editKelas('${kelas['ID'] || kelas.id}')" title="Edit">
                 <span class="material-icons-round">edit</span>
               </button>
-              <button class="btn-action delete" onclick="deleteKelas('${kelas.id}')" title="Hapus">
+              <button class="btn-action delete" onclick="deleteKelas('${kelas['ID'] || kelas.id}')" title="Hapus">
                 <span class="material-icons-round">delete</span>
               </button>
             </div>
@@ -2088,7 +2120,7 @@
         </tr>
       `).join('');
     }
-    
+
     function openModalKelas() {
       document.getElementById('modalKelasTitle').textContent = 'Tambah Kelas';
       document.getElementById('formKelas').reset();
@@ -2098,35 +2130,35 @@
       document.getElementById('modalKelas').classList.add('active');
       updateGuruKelasSelect();
     }
-    
+
     function closeModalKelas() {
       document.getElementById('modalKelas').classList.remove('active');
     }
-    
+
     function updateGuruKelasSelect() {
       const select = document.getElementById('kelasGuruKelas');
-      const guruKelasList = guruList.filter(g => g.jenis === 'Guru Kelas' && g.status === 'Aktif');
+      const guruKelasList = guruList.filter(g => g['Jenis Guru'] === 'Guru Kelas' && g['Status'] === 'Aktif');
       
       select.innerHTML = '<option value="">Pilih Guru Kelas</option>' +
-        guruKelasList.map(g => `<option value="${g.nama}">${g.nama}</option>`).join('');
+        guruKelasList.map(g => `<option value="${g['Nama Guru']}">${g['Nama Guru']}</option>`).join('');
     }
-    
+
     function editKelas(id) {
-      const kelas = kelasList.find(k => k.id === id);
+      const kelas = kelasList.find(k => k['ID'] === id || k.ID === id);
       if (!kelas) return;
       
       document.getElementById('modalKelasTitle').textContent = 'Edit Kelas';
-      document.getElementById('kelasId').value = kelas.id;
-      document.getElementById('kelasNama').value = kelas.nama;
-      document.getElementById('kelasTingkat').value = kelas.tingkat;
-      document.getElementById('kelasJamPerHari').value = kelas.jamPerHari;
-      document.getElementById('kelasGuruKelas').value = kelas.guruKelas;
-      document.getElementById('kelasStatus').value = kelas.status;
+      document.getElementById('kelasId').value = kelas['ID'] || kelas.id;
+      document.getElementById('kelasNama').value = kelas['Nama Kelas'] || kelas.nama;
+      document.getElementById('kelasTingkat').value = kelas['Tingkat'] || kelas.tingkat;
+      document.getElementById('kelasJamPerHari').value = kelas['Jumlah Jam/Hari'] || kelas.jamPerHari;
+      document.getElementById('kelasGuruKelas').value = kelas['Guru Kelas'] || kelas.guruKelas;
+      document.getElementById('kelasStatus').value = kelas['Status'] || kelas.status;
       
       updateGuruKelasSelect();
       document.getElementById('modalKelas').classList.add('active');
     }
-    
+
     function saveKelas() {
       const data = {
         id: document.getElementById('kelasId').value || null,
@@ -2144,26 +2176,57 @@
       
       showLoading('Menyimpan data...');
       
-      google.script.run
-        .withSuccessHandler(function(result) {
-          hideLoading();
-          if (result.success) {
-            closeModalKelas();
-            showToast(result.message, 'success');
-            loadAllData();
-          } else {
-            showToast(result.error || 'Gagal menyimpan!', 'error');
-          }
-        })
-        .withFailureHandler(function(error) {
-          hideLoading();
-          showToast('Terjadi kesalahan: ' + error, 'error');
-        })
-        .saveKelas(data);
+      if (data.id) {
+        // Update
+        const kelas = kelasList.find(k => k['ID'] === data.id || k.ID === data.id);
+        if (kelas) {
+          data.rowIndex = kelas.rowIndex;
+          google.script.run
+            .withSuccessHandler(function(result) {
+              hideLoading();
+              if (result.success) {
+                closeModalKelas();
+                showToast(result.message, 'success');
+                refreshKelasData();
+              } else {
+                showToast(result.error || 'Gagal menyimpan!', 'error');
+              }
+            })
+            .withFailureHandler(function(error) {
+              hideLoading();
+              showToast('Terjadi kesalahan: ' + error, 'error');
+            })
+            .updateKelas(data);
+        }
+      } else {
+        // Create
+        google.script.run
+          .withSuccessHandler(function(result) {
+            hideLoading();
+            if (result.success) {
+              closeModalKelas();
+              showToast(result.message, 'success');
+              refreshKelasData();
+            } else {
+              showToast(result.error || 'Gagal menyimpan!', 'error');
+            }
+          })
+          .withFailureHandler(function(error) {
+            hideLoading();
+            showToast('Terjadi kesalahan: ' + error, 'error');
+          })
+          .simpanKelas(data);
+      }
     }
-    
+
     function deleteKelas(id) {
       if (!confirm('Yakin ingin menghapus data kelas ini?')) return;
+      
+      const kelas = kelasList.find(k => k['ID'] === id || k.ID === id);
+      if (!kelas) {
+        showToast('Data tidak ditemukan!', 'error');
+        return;
+      }
       
       showLoading('Menghapus data...');
       
@@ -2172,7 +2235,7 @@
           hideLoading();
           if (result.success) {
             showToast(result.message, 'success');
-            loadAllData();
+            refreshKelasData();
           } else {
             showToast(result.error || 'Gagal menghapus!', 'error');
           }
@@ -2181,7 +2244,7 @@
           hideLoading();
           showToast('Terjadi kesalahan: ' + error, 'error');
         })
-        .deleteKelas(id);
+        .hapusKelas(kelas.rowIndex);
     }
     
     // ============================================================================

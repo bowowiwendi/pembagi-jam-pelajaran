@@ -1,11 +1,36 @@
 /**
  * Pembagi Jam Pelajaran SD/MI - Google Apps Script Web App
  * Sistem Pembagian Otomatis Jam Pelajaran untuk Sekolah Dasar/Madrasah Ibtidaiyah
+ * 
+ * CRUD Pattern Implementation
  */
 
 // ============================================================================
-// KONFIGURASI & SETUP
+// SETUP & KONFIGURASI
 // ============================================================================
+
+const CONFIG = {
+  SHEET_NAMES: {
+    GURU: 'Data Guru',
+    KELAS: 'Data Kelas',
+    MAPEL: 'Struktur Mapel',
+    HASIL: 'Hasil Jadwal',
+    SETTINGS: 'Settings'
+  },
+  HARI: ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'],
+  ADMIN_PASSWORD_KEY: 'admin_password',
+  DEFAULT_PASSWORD: 'admin123'
+};
+
+/**
+ * Fungsi utama - Menampilkan halaman web
+ */
+function doGet() {
+  return HtmlService.createHtmlOutputFromFile('Index')
+    .setTitle('Pembagi Jam Pelajaran SD/MI')
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1.0')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
 
 /**
  * Menu custom yang muncul di Google Sheets
@@ -14,11 +39,8 @@ function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('🏫 Pembagi Jam Pelajaran')
     .addItem('📊 Setup Database', 'setupDatabase')
-    .addItem('🌐 Buka Web App', 'showWebAppDialog')
+    .addItem('🌐 Info Web App', 'showWebAppDialog')
     .addToUi();
-  
-  // Auto setup saat spreadsheet dibuka
-  setupDatabase();
 }
 
 /**
@@ -43,136 +65,181 @@ function showWebAppDialog() {
   SpreadsheetApp.getUi().showModalDialog(html, 'Pembagi Jam Pelajaran');
 }
 
-const CONFIG = {
-  SHEET_NAMES: {
-    GURU: 'Data Guru',
-    KELAS: 'Data Kelas',
-    MAPEL: 'Struktur Mapel',
-    HASIL: 'Hasil Jadwal',
-    SETTINGS: 'Settings'
-  },
-  HARI: ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'],
-  MAX_JAM_PER_HARI: 8,
-  ADMIN_PASSWORD: 'admin123' // Password default (bisa diubah)
-};
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
 
 /**
- * Fungsi utama - Menampilkan halaman web
+ * Mendapatkan Spreadsheet aktif
  */
-function doGet() {
-  return HtmlService.createTemplateFromFile('Index')
-    .evaluate()
-    .setTitle('Pembagi Jam Pelajaran SD/MI')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
-    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+function getSS() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  if (!ss) throw new Error('Buka Apps Script dari dalam Google Sheets (Bound Script).');
+  return ss;
 }
 
 /**
- * Include file CSS/JS eksternal
+ * Mendapatkan sheet by name
  */
-function include(filename) {
-  return HtmlService.createHtmlOutputFromFile(filename).getContent();
-}
-
-/**
- * Mendapatkan Spreadsheet ID
- */
-function getSpreadsheet() {
-  return SpreadsheetApp.getActiveSpreadsheet();
+function getSheet(name) {
+  const s = getSS().getSheetByName(name);
+  if (!s) throw new Error('Sheet "' + name + '" belum ada. Jalankan setupDatabase terlebih dahulu.');
+  return s;
 }
 
 /**
  * Mendapatkan atau membuat sheet
  */
-function getOrCreateSheet(sheetName) {
-  const ss = getSpreadsheet();
-  let sheet = ss.getSheetByName(sheetName);
-  if (!sheet) {
-    sheet = ss.insertSheet(sheetName);
+function getOrCreateSheet(name) {
+  const ss = getSS();
+  let s = ss.getSheetByName(name);
+  if (!s) {
+    s = ss.insertSheet(name);
   }
-  return sheet;
+  return s;
+}
+
+/**
+ * Generate unique ID
+ */
+function generateId(prefix) {
+  return prefix + String(new Date().getTime()).slice(-6);
+}
+
+/**
+ * Format date to Indonesian locale
+ */
+function formatDateID(date) {
+  if (!date) return '';
+  const d = new Date(date);
+  return Utilities.formatDate(d, Session.getScriptTimeZone(), 'dd-MM-yyyy HH:mm');
 }
 
 // ============================================================================
-// FUNGSI SETUP DATABASE
+// PIN MANAGEMENT (via PropertiesService)
 // ============================================================================
 
-/**
- * Setup struktur database spreadsheet
- */
+function createPin(pinStr) {
+  const pin = String(pinStr);
+  if (!pin || pin.length !== 6 || !/^\d{6}$/.test(pin)) {
+    throw new Error('PIN harus terdiri dari tepat 6 angka.');
+  }
+  PropertiesService.getScriptProperties().setProperty('APP_PIN', pin);
+  return 'PIN berhasil dibuat!';
+}
+
+function verifyPin(pinStr) {
+  const pin = String(pinStr);
+  const stored = PropertiesService.getScriptProperties().getProperty('APP_PIN');
+  if (!stored) {
+    // Use default password if no PIN set
+    const defaultPwd = getSetting('admin_password', CONFIG.DEFAULT_PASSWORD);
+    if (pin === defaultPwd) return { ok: true };
+    return { ok: false, msg: 'PIN belum diatur. Gunakan password default: admin123' };
+  }
+  if (pin === stored) return { ok: true };
+  return { ok: false, msg: 'PIN salah. Coba lagi.' };
+}
+
+function resetPin(oldPinStr, newPinStr) {
+  const oldPin = String(oldPinStr);
+  const newPin = String(newPinStr);
+  const stored = PropertiesService.getScriptProperties().getProperty('APP_PIN');
+  if (!stored) throw new Error('Belum ada PIN terdaftar.');
+  if (oldPin !== stored) throw new Error('PIN lama tidak sesuai.');
+  if (!newPin || newPin.length !== 6 || !/^\d{6}$/.test(newPin)) throw new Error('PIN baru harus 6 angka.');
+  PropertiesService.getScriptProperties().setProperty('APP_PIN', newPin);
+  return 'PIN berhasil diubah!';
+}
+
+// ============================================================================
+// AUTO SETUP DATABASE
+// ============================================================================
+
 function setupDatabase() {
-  Logger.log('=== Starting setupDatabase ===');
-  const ss = getSpreadsheet();
+  const ss = getSS();
+  const defs = [
+    { 
+      name: CONFIG.SHEET_NAMES.GURU, 
+      headers: ['ID', 'Nama Guru', 'Jenis Guru', 'Mata Pelajaran', 'Maksimal Jam/Minggu', 'Status', 'Created At'],
+      sampleData: [
+        ['GURU001', 'Ahmad Fauzi', 'Guru Kelas', 'Semua Mapel', 24, 'Aktif', new Date()],
+        ['GURU002', 'Siti Nurhaliza', 'Guru Kelas', 'Semua Mapel', 24, 'Aktif', new Date()],
+        ['GURU003', 'Budi Santoso', 'Guru Mapel', 'PJOK', 18, 'Aktif', new Date()],
+        ['GURU004', 'Fatimah Zahra', 'Guru Mapel', 'Bahasa Inggris', 18, 'Aktif', new Date()],
+        ['GURU005', 'Umar Abdullah', 'Guru Mapel', 'PAI', 18, 'Aktif', new Date()],
+        ['GURU006', 'Aisyah Putri', 'Guru Mapel', 'SBdP', 18, 'Aktif', new Date()]
+      ]
+    },
+    { 
+      name: CONFIG.SHEET_NAMES.KELAS, 
+      headers: ['ID', 'Nama Kelas', 'Tingkat', 'Jumlah Jam/Hari', 'Guru Kelas', 'Status', 'Created At'],
+      sampleData: generateKelasSampleData()
+    },
+    { 
+      name: CONFIG.SHEET_NAMES.MAPEL, 
+      headers: ['ID', 'Mata Pelajaran', 'Jam/Minggu (Kls 1-3)', 'Jam/Minggu (Kls 4-6)', 'Kategori', 'Warna', 'Created At'],
+      sampleData: [
+        ['MAPEL001', 'PKn', 4, 3, 'Guru Kelas', '#FFB74D', new Date()],
+        ['MAPEL002', 'Bahasa Indonesia', 8, 7, 'Guru Kelas', '#64B5F6', new Date()],
+        ['MAPEL003', 'Matematika', 5, 5, 'Guru Kelas', '#81C784', new Date()],
+        ['MAPEL004', 'IPA', 0, 4, 'Guru Kelas', '#4DB6AC', new Date()],
+        ['MAPEL005', 'IPS', 0, 3, 'Guru Kelas', '#A1887F', new Date()],
+        ['MAPEL006', 'PJOK', 3, 3, 'Guru Mapel', '#E57373', new Date()],
+        ['MAPEL007', 'Bahasa Inggris', 2, 2, 'Guru Mapel', '#BA68C8', new Date()],
+        ['MAPEL008', 'PAI', 4, 4, 'Guru Mapel', '#4CAF50', new Date()],
+        ['MAPEL009', 'SBdP', 3, 3, 'Guru Mapel', '#F06292', new Date()],
+        ['MAPEL010', 'Tematik', 10, 0, 'Guru Kelas', '#FFF176', new Date()]
+      ]
+    },
+    { 
+      name: CONFIG.SHEET_NAMES.HASIL, 
+      headers: ['ID Jadwal', 'Kelas', 'Hari', 'Jam Ke-', 'Mata Pelajaran', 'Guru', 'Tanggal Generate', 'Status'],
+      sampleData: []
+    },
+    { 
+      name: CONFIG.SHEET_NAMES.SETTINGS, 
+      headers: ['Key', 'Value', 'Description'],
+      sampleData: [
+        ['admin_password', CONFIG.DEFAULT_PASSWORD, 'Password admin'],
+        ['school_name', 'SD/MI Contoh', 'Nama Sekolah'],
+        ['academic_year', '2025/2026', 'Tahun Ajaran']
+      ]
+    }
+  ];
   
-  // Setup Data Guru
-  setupGuruSheet(ss);
+  let created = 0;
+  let totalRows = 0;
   
-  // Setup Data Kelas
-  setupKelasSheet(ss);
+  defs.forEach(def => {
+    const sh = ss.getSheetByName(def.name);
+    if (!sh) {
+      const newSh = ss.insertSheet(def.name);
+      newSh.appendRow(def.headers);
+      newSh.getRange(1, 1, 1, def.headers.length).setFontWeight('bold').setBackground('#10b981').setFontColor('white');
+      
+      // Insert sample data if exists
+      if (def.sampleData && def.sampleData.length > 0) {
+        newSh.getRange(2, 1, def.sampleData.length, def.sampleData[0].length).setValues(def.sampleData);
+        totalRows += def.sampleData.length;
+      }
+      created++;
+    }
+  });
   
-  // Setup Struktur Mapel
-  setupMapelSheet(ss);
-  
-  // Setup Hasil Jadwal
-  setupHasilSheet(ss);
-  
-  // Setup Settings
-  setupSettingsSheet(ss);
-  
-  Logger.log('=== setupDatabase completed ===');
-  return { success: true, message: 'Database berhasil di-setup!' };
+  return created > 0 
+    ? created + ' sheet berhasil dibuat dengan ' + totalRows + ' data sample!' 
+    : 'Semua sheet sudah ada.';
 }
 
-/**
- * Fungsi untuk mengecek dan memaksa insert data sample
- * Gunakan jika data tidak muncul
- */
-function forceInsertSampleData() {
-  Logger.log('=== Starting forceInsertSampleData ===');
-  const ss = getSpreadsheet();
-  
-  // Force insert Guru
-  let guruSheet = ss.getSheetByName(CONFIG.SHEET_NAMES.GURU);
-  if (!guruSheet) {
-    guruSheet = ss.insertSheet(CONFIG.SHEET_NAMES.GURU);
-  }
-  // Clear dan insert ulang
-  if (guruSheet.getLastRow() > 0) {
-    guruSheet.clear();
-  }
-  const guruHeaders = ['ID', 'Nama Guru', 'Jenis Guru', 'Mata Pelajaran', 'Maksimal Jam/Minggu', 'Status', 'Created At'];
-  guruSheet.getRange(1, 1, 1, guruHeaders.length).setValues([guruHeaders]);
-  guruSheet.getRange(1, 1, 1, guruHeaders.length).setFontWeight('bold').setBackground('#4CAF50').setFontColor('white');
-  const guruData = [
-    ['GURU001', 'Ahmad Fauzi', 'Guru Kelas', 'Semua Mapel', 24, 'Aktif', new Date()],
-    ['GURU002', 'Siti Nurhaliza', 'Guru Kelas', 'Semua Mapel', 24, 'Aktif', new Date()],
-    ['GURU003', 'Budi Santoso', 'Guru Mapel', 'PJOK', 18, 'Aktif', new Date()],
-    ['GURU004', 'Fatimah Zahra', 'Guru Mapel', 'Bahasa Inggris', 18, 'Aktif', new Date()],
-    ['GURU005', 'Umar Abdullah', 'Guru Mapel', 'PAI', 18, 'Aktif', new Date()],
-    ['GURU006', 'Aisyah Putri', 'Guru Mapel', 'SBdP', 18, 'Aktif', new Date()]
-  ];
-  if (guruData.length > 0) {
-    guruSheet.getRange(2, 1, guruData.length, guruData[0].length).setValues(guruData);
-  }
-  Logger.log('Guru data inserted: ' + guruData.length + ' rows');
-  
-  // Force insert Kelas
-  let kelasSheet = ss.getSheetByName(CONFIG.SHEET_NAMES.KELAS);
-  if (!kelasSheet) {
-    kelasSheet = ss.insertSheet(CONFIG.SHEET_NAMES.KELAS);
-  }
-  if (kelasSheet.getLastRow() > 0) {
-    kelasSheet.clear();
-  }
-  const kelasHeaders = ['ID', 'Nama Kelas', 'Tingkat', 'Jumlah Jam/Hari', 'Guru Kelas', 'Status', 'Created At'];
-  kelasSheet.getRange(1, 1, 1, kelasHeaders.length).setValues([kelasHeaders]);
-  kelasSheet.getRange(1, 1, 1, kelasHeaders.length).setFontWeight('bold').setBackground('#2196F3').setFontColor('white');
-  const kelasData = [];
+function generateKelasSampleData() {
+  const data = [];
   const kelasNames = ['A', 'B'];
   let id = 1;
+  
   for (let tingkat = 1; tingkat <= 6; tingkat++) {
     for (let paralel of kelasNames) {
-      kelasData.push([
+      data.push([
         'KLS' + String(id).padStart(3, '0'),
         'Kelas ' + tingkat + paralel,
         tingkat,
@@ -184,558 +251,329 @@ function forceInsertSampleData() {
       id++;
     }
   }
-  if (kelasData.length > 0) {
-    kelasSheet.getRange(2, 1, kelasData.length, kelasData[0].length).setValues(kelasData);
-  }
-  Logger.log('Kelas data inserted: ' + kelasData.length + ' rows');
+  return data;
+}
+
+// ============================================================================
+// READ - GENERIC & SPECIFIC
+// ============================================================================
+
+/**
+ * Generic get rows from sheet
+ */
+function getRows(sheetName) {
+  const sheet = getSheet(sheetName);
+  const vals = sheet.getDataRange().getValues();
+  if (vals.length <= 1) return [];
   
-  // Force insert Mapel
-  let mapelSheet = ss.getSheetByName(CONFIG.SHEET_NAMES.MAPEL);
-  if (!mapelSheet) {
-    mapelSheet = ss.insertSheet(CONFIG.SHEET_NAMES.MAPEL);
-  }
-  if (mapelSheet.getLastRow() > 0) {
-    mapelSheet.clear();
-  }
-  const mapelHeaders = ['ID', 'Mata Pelajaran', 'Jam/Minggu (Kls 1-3)', 'Jam/Minggu (Kls 4-6)', 'Kategori', 'Warna', 'Created At'];
-  mapelSheet.getRange(1, 1, 1, mapelHeaders.length).setValues([mapelHeaders]);
-  mapelSheet.getRange(1, 1, 1, mapelHeaders.length).setFontWeight('bold').setBackground('#9C27B0').setFontColor('white');
-  const mapelData = [
-    ['MAPEL001', 'PKn', 4, 3, 'Guru Kelas', '#FFB74D', new Date()],
-    ['MAPEL002', 'Bahasa Indonesia', 8, 7, 'Guru Kelas', '#64B5F6', new Date()],
-    ['MAPEL003', 'Matematika', 5, 5, 'Guru Kelas', '#81C784', new Date()],
-    ['MAPEL004', 'IPA', 0, 4, 'Guru Kelas', '#4DB6AC', new Date()],
-    ['MAPEL005', 'IPS', 0, 3, 'Guru Kelas', '#A1887F', new Date()],
-    ['MAPEL006', 'PJOK', 3, 3, 'Guru Mapel', '#E57373', new Date()],
-    ['MAPEL007', 'Bahasa Inggris', 2, 2, 'Guru Mapel', '#BA68C8', new Date()],
-    ['MAPEL008', 'PAI', 4, 4, 'Guru Mapel', '#4CAF50', new Date()],
-    ['MAPEL009', 'SBdP', 3, 3, 'Guru Mapel', '#F06292', new Date()],
-    ['MAPEL010', 'Tematik', 10, 0, 'Guru Kelas', '#FFF176', new Date()]
-  ];
-  if (mapelData.length > 0) {
-    mapelSheet.getRange(2, 1, mapelData.length, mapelData[0].length).setValues(mapelData);
-  }
-  Logger.log('Mapel data inserted: ' + mapelData.length + ' rows');
-  
-  Logger.log('=== forceInsertSampleData completed ===');
-  return { 
-    success: true, 
-    message: 'Data sample berhasil di-insert!',
-    guruCount: guruData.length,
-    kelasCount: kelasData.length,
-    mapelCount: mapelData.length
-  };
+  const headers = vals[0];
+  return vals.slice(1).map((row, i) => ({
+    rowIndex: i + 2,
+    headers: headers,
+    data: row.map(c => c instanceof Date ? Utilities.formatDate(c, Session.getScriptTimeZone(), 'dd-MM-yyyy HH:mm') : c)
+  }));
 }
 
 /**
- * Test fungsi untuk mengecek koneksi data
+ * Get all data as object array
  */
-function testDataConnection() {
+function getAllData(sheetName) {
+  const sheet = getSheet(sheetName);
+  const vals = sheet.getDataRange().getValues();
+  if (vals.length <= 1) return [];
+  
+  const headers = vals[0];
+  return vals.slice(1).map((row, i) => {
+    const obj = { rowIndex: i + 2 };
+    headers.forEach((h, idx) => {
+      obj[h] = row[idx] instanceof Date 
+        ? Utilities.formatDate(row[idx], Session.getScriptTimeZone(), 'dd-MM-yyyy HH:mm') 
+        : row[idx];
+    });
+    return obj;
+  });
+}
+
+/**
+ * Get Guru list
+ */
+function getDataGuru() {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sheets = ss.getSheets();
-    const sheetNames = sheets.map(s => s.getName());
+    return getAllData(CONFIG.SHEET_NAMES.GURU);
+  } catch(e) {
+    Logger.log('Error getDataGuru: ' + e.toString());
+    return [];
+  }
+}
+
+/**
+ * Get Kelas list
+ */
+function getDataKelas() {
+  try {
+    return getAllData(CONFIG.SHEET_NAMES.KELAS);
+  } catch(e) {
+    Logger.log('Error getDataKelas: ' + e.toString());
+    return [];
+  }
+}
+
+/**
+ * Get Mapel list
+ */
+function getDataMapel() {
+  try {
+    return getAllData(CONFIG.SHEET_NAMES.MAPEL);
+  } catch(e) {
+    Logger.log('Error getDataMapel: ' + e.toString());
+    return [];
+  }
+}
+
+/**
+ * Get Jadwal list
+ */
+function getDataJadwal() {
+  try {
+    return getAllData(CONFIG.SHEET_NAMES.HASIL);
+  } catch(e) {
+    Logger.log('Error getDataJadwal: ' + e.toString());
+    return [];
+  }
+}
+
+// ============================================================================
+// CREATE
+// ============================================================================
+
+/**
+ * Simpan Guru baru
+ */
+function simpanGuru(f) {
+  const sheet = getSheet(CONFIG.SHEET_NAMES.GURU);
+  const id = f.id || generateId('GURU');
+  
+  sheet.appendRow([
+    id,
+    f.nama,
+    f.jenis,
+    f.mapel || 'Semua Mapel',
+    Number(f.maxJam) || 24,
+    f.status || 'Aktif',
+    new Date()
+  ]);
+  
+  return { success: true, message: 'Data guru berhasil disimpan!', id: id };
+}
+
+/**
+ * Simpan Kelas baru
+ */
+function simpanKelas(f) {
+  const sheet = getSheet(CONFIG.SHEET_NAMES.KELAS);
+  const id = f.id || generateId('KLS');
+  
+  sheet.appendRow([
+    id,
+    f.nama,
+    Number(f.tingkat),
+    Number(f.jamPerHari) || 6,
+    f.guruKelas || '',
+    f.status || 'Aktif',
+    new Date()
+  ]);
+  
+  return { success: true, message: 'Data kelas berhasil disimpan!', id: id };
+}
+
+/**
+ * Simpan Mapel baru
+ */
+function simpanMapel(f) {
+  const sheet = getSheet(CONFIG.SHEET_NAMES.MAPEL);
+  const id = f.id || generateId('MAPEL');
+  
+  sheet.appendRow([
+    id,
+    f.nama,
+    Number(f.jamKls13) || 0,
+    Number(f.jamKls46) || 0,
+    f.kategori || 'Guru Kelas',
+    f.warna || '#4CAF50',
+    new Date()
+  ]);
+  
+  return { success: true, message: 'Data mapel berhasil disimpan!', id: id };
+}
+
+// ============================================================================
+// UPDATE
+// ============================================================================
+
+/**
+ * Update Guru
+ */
+function updateGuru(f) {
+  const sheet = getSheet(CONFIG.SHEET_NAMES.GURU);
+  const ri = Number(f.rowIndex);
+  
+  sheet.getRange(ri, 2).setValue(f.nama);
+  sheet.getRange(ri, 3).setValue(f.jenis);
+  sheet.getRange(ri, 4).setValue(f.mapel || 'Semua Mapel');
+  sheet.getRange(ri, 5).setValue(Number(f.maxJam) || 24);
+  sheet.getRange(ri, 6).setValue(f.status || 'Aktif');
+  
+  return { success: true, message: 'Data guru berhasil diperbarui!' };
+}
+
+/**
+ * Update Kelas
+ */
+function updateKelas(f) {
+  const sheet = getSheet(CONFIG.SHEET_NAMES.KELAS);
+  const ri = Number(f.rowIndex);
+  
+  sheet.getRange(ri, 2).setValue(f.nama);
+  sheet.getRange(ri, 3).setValue(Number(f.tingkat));
+  sheet.getRange(ri, 4).setValue(Number(f.jamPerHari) || 6);
+  sheet.getRange(ri, 5).setValue(f.guruKelas || '');
+  sheet.getRange(ri, 6).setValue(f.status || 'Aktif');
+  
+  return { success: true, message: 'Data kelas berhasil diperbarui!' };
+}
+
+/**
+ * Update Mapel
+ */
+function updateMapel(f) {
+  const sheet = getSheet(CONFIG.SHEET_NAMES.MAPEL);
+  const ri = Number(f.rowIndex);
+  
+  sheet.getRange(ri, 2).setValue(f.nama);
+  sheet.getRange(ri, 3).setValue(Number(f.jamKls13) || 0);
+  sheet.getRange(ri, 4).setValue(Number(f.jamKls46) || 0);
+  sheet.getRange(ri, 5).setValue(f.kategori || 'Guru Kelas');
+  sheet.getRange(ri, 6).setValue(f.warna || '#4CAF50');
+  
+  return { success: true, message: 'Data mapel berhasil diperbarui!' };
+}
+
+// ============================================================================
+// DELETE
+// ============================================================================
+
+/**
+ * Delete row by sheet name and row index
+ */
+function hapusData(sheetName, rowIndex) {
+  const sheet = getSheet(sheetName);
+  sheet.deleteRow(Number(rowIndex));
+  return { success: true, message: 'Data berhasil dihapus!' };
+}
+
+function hapusGuru(rowIndex) { return hapusData(CONFIG.SHEET_NAMES.GURU, rowIndex); }
+function hapusKelas(rowIndex) { return hapusData(CONFIG.SHEET_NAMES.KELAS, rowIndex); }
+function hapusMapel(rowIndex) { return hapusData(CONFIG.SHEET_NAMES.MAPEL, rowIndex); }
+
+// ============================================================================
+// SETTINGS MANAGEMENT
+// ============================================================================
+
+function getSetting(key, defaultValue = '') {
+  try {
+    const sheet = getSheet(CONFIG.SHEET_NAMES.SETTINGS);
+    const data = sheet.getDataRange().getValues();
     
-    const result = {
-      spreadsheetName: ss.getName(),
-      sheetNames: sheetNames,
-      guruSheetExists: sheetNames.includes(CONFIG.SHEET_NAMES.GURU),
-      kelasSheetExists: sheetNames.includes(CONFIG.SHEET_NAMES.KELAS),
-      mapelSheetExists: sheetNames.includes(CONFIG.SHEET_NAMES.MAPEL)
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === key) {
+        return data[i][1];
+      }
+    }
+    
+    return defaultValue;
+  } catch (e) {
+    return defaultValue;
+  }
+}
+
+function updateSetting(key, value) {
+  try {
+    const sheet = getSheet(CONFIG.SHEET_NAMES.SETTINGS);
+    const data = sheet.getDataRange().getValues();
+    
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === key) {
+        sheet.getRange(i + 1, 2).setValue(value);
+        return { success: true };
+      }
+    }
+    
+    // If not found, append new
+    sheet.appendRow([key, value, '']);
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: e.toString() };
+  }
+}
+
+// ============================================================================
+// LOGIN & AUTH
+// ============================================================================
+
+function loginAdmin(password) {
+  const storedPassword = getSetting(CONFIG.ADMIN_PASSWORD_KEY, CONFIG.DEFAULT_PASSWORD);
+  
+  if (password === storedPassword) {
+    return { success: true, message: 'Login berhasil!' };
+  }
+  
+  return { success: false, error: 'Password salah!' };
+}
+
+// ============================================================================
+// DASHBOARD & STATISTICS
+// ============================================================================
+
+function getDashboardStats() {
+  try {
+    const guruList = getDataGuru();
+    const kelasList = getDataKelas();
+    const mapelList = getDataMapel();
+    const jadwalList = getDataJadwal();
+    
+    let totalJamGuru = 0;
+    guruList.forEach(g => {
+      const jamCount = jadwalList.filter(j => j['Guru'] === g['Nama Guru']).length;
+      totalJamGuru += jamCount;
+    });
+    
+    return {
+      totalGuru: guruList.length,
+      totalKelas: kelasList.length,
+      totalMapel: mapelList.length,
+      totalJadwal: jadwalList.length,
+      totalJamGuru: totalJamGuru,
+      guruKelas: guruList.filter(g => g['Jenis Guru'] === 'Guru Kelas').length,
+      guruMapel: guruList.filter(g => g['Jenis Guru'] === 'Guru Mapel').length
     };
-    
-    // Cek isi masing-masing sheet
-    if (result.guruSheetExists) {
-      const guruSheet = ss.getSheetByName(CONFIG.SHEET_NAMES.GURU);
-      result.guruRowCount = guruSheet.getLastRow();
-    }
-    if (result.kelasSheetExists) {
-      const kelasSheet = ss.getSheetByName(CONFIG.SHEET_NAMES.KELAS);
-      result.kelasRowCount = kelasSheet.getLastRow();
-    }
-    if (result.mapelSheetExists) {
-      const mapelSheet = ss.getSheetByName(CONFIG.SHEET_NAMES.MAPEL);
-      result.mapelRowCount = mapelSheet.getLastRow();
-    }
-    
-    return result;
   } catch (e) {
-    return { error: e.toString() };
-  }
-}
-
-function setupGuruSheet(ss) {
-  let sheet = ss.getSheetByName(CONFIG.SHEET_NAMES.GURU);
-  if (!sheet) {
-    sheet = ss.insertSheet(CONFIG.SHEET_NAMES.GURU);
-  }
-  
-  const headers = ['ID', 'Nama Guru', 'Jenis Guru', 'Mata Pelajaran', 'Maksimal Jam/Minggu', 'Status', 'Created At'];
-  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
-  sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold').setBackground('#4CAF50').setFontColor('white');
-  
-  // Cek apakah sudah ada data
-  const existingData = sheet.getLastRow();
-  
-  // Data sample
-  const sampleData = [
-    ['GURU001', 'Ahmad Fauzi', 'Guru Kelas', 'Semua Mapel', 24, 'Aktif', new Date()],
-    ['GURU002', 'Siti Nurhaliza', 'Guru Kelas', 'Semua Mapel', 24, 'Aktif', new Date()],
-    ['GURU003', 'Budi Santoso', 'Guru Mapel', 'PJOK', 18, 'Aktif', new Date()],
-    ['GURU004', 'Fatimah Zahra', 'Guru Mapel', 'Bahasa Inggris', 18, 'Aktif', new Date()],
-    ['GURU005', 'Umar Abdullah', 'Guru Mapel', 'PAI', 18, 'Aktif', new Date()],
-    ['GURU006', 'Aisyah Putri', 'Guru Mapel', 'SBdP', 18, 'Aktif', new Date()]
-  ];
-  
-  // Hanya insert jika belum ada data sama sekali
-  if (existingData < 2) {
-    sheet.getRange(2, 1, sampleData.length, sampleData[0].length).setValues(sampleData);
-    Logger.log('Data guru sample inserted: ' + sampleData.length + ' rows');
-  } else {
-    Logger.log('Data guru sudah ada: ' + existingData + ' rows');
-  }
-}
-
-function setupKelasSheet(ss) {
-  let sheet = ss.getSheetByName(CONFIG.SHEET_NAMES.KELAS);
-  if (!sheet) {
-    sheet = ss.insertSheet(CONFIG.SHEET_NAMES.KELAS);
-  }
-  
-  const headers = ['ID', 'Nama Kelas', 'Tingkat', 'Jumlah Jam/Hari', 'Guru Kelas', 'Status', 'Created At'];
-  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
-  sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold').setBackground('#2196F3').setFontColor('white');
-  
-  // Cek apakah sudah ada data
-  const existingData = sheet.getLastRow();
-  
-  // Data sample - 6 tingkat dengan 2 paralel masing-masing
-  const sampleData = [];
-  const kelasNames = ['A', 'B'];
-  let id = 1;
-  
-  for (let tingkat = 1; tingkat <= 6; tingkat++) {
-    for (let paralel of kelasNames) {
-      sampleData.push([
-        'KLS' + String(id).padStart(3, '0'),
-        `Kelas ${tingkat}${paralel}`,
-        tingkat,
-        6,
-        '',
-        'Aktif',
-        new Date()
-      ]);
-      id++;
-    }
-  }
-  
-  // Hanya insert jika belum ada data
-  if (existingData < 2) {
-    sheet.getRange(2, 1, sampleData.length, sampleData[0].length).setValues(sampleData);
-    Logger.log('Data kelas sample inserted: ' + sampleData.length + ' rows');
-  } else {
-    Logger.log('Data kelas sudah ada: ' + existingData + ' rows');
-  }
-}
-
-function setupMapelSheet(ss) {
-  let sheet = ss.getSheetByName(CONFIG.SHEET_NAMES.MAPEL);
-  if (!sheet) {
-    sheet = ss.insertSheet(CONFIG.SHEET_NAMES.MAPEL);
-  }
-  
-  const headers = ['ID', 'Mata Pelajaran', 'Jam/Minggu (Kls 1-3)', 'Jam/Minggu (Kls 4-6)', 'Kategori', 'Warna', 'Created At'];
-  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
-  sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold').setBackground('#9C27B0').setFontColor('white');
-  
-  // Cek apakah sudah ada data
-  const existingData = sheet.getLastRow();
-  
-  // Struktur kurikulum SD/MI
-  const sampleData = [
-    ['MAPEL001', 'PKn', 4, 3, 'Guru Kelas', '#FFB74D', new Date()],
-    ['MAPEL002', 'Bahasa Indonesia', 8, 7, 'Guru Kelas', '#64B5F6', new Date()],
-    ['MAPEL003', 'Matematika', 5, 5, 'Guru Kelas', '#81C784', new Date()],
-    ['MAPEL004', 'IPA', 0, 4, 'Guru Kelas', '#4DB6AC', new Date()],
-    ['MAPEL005', 'IPS', 0, 3, 'Guru Kelas', '#A1887F', new Date()],
-    ['MAPEL006', 'PJOK', 3, 3, 'Guru Mapel', '#E57373', new Date()],
-    ['MAPEL007', 'Bahasa Inggris', 2, 2, 'Guru Mapel', '#BA68C8', new Date()],
-    ['MAPEL008', 'PAI', 4, 4, 'Guru Mapel', '#4CAF50', new Date()],
-    ['MAPEL009', 'SBdP', 3, 3, 'Guru Mapel', '#F06292', new Date()],
-    ['MAPEL010', 'Tematik', 10, 0, 'Guru Kelas', '#FFF176', new Date()]
-  ];
-  
-  // Hanya insert jika belum ada data
-  if (existingData < 2) {
-    sheet.getRange(2, 1, sampleData.length, sampleData[0].length).setValues(sampleData);
-    Logger.log('Data mapel sample inserted: ' + sampleData.length + ' rows');
-  } else {
-    Logger.log('Data mapel sudah ada: ' + existingData + ' rows');
-  }
-}
-
-function setupHasilSheet(ss) {
-  let sheet = ss.getSheetByName(CONFIG.SHEET_NAMES.HASIL);
-  if (!sheet) {
-    sheet = ss.insertSheet(CONFIG.SHEET_NAMES.HASIL);
-  }
-  
-  const headers = ['ID Jadwal', 'Kelas', 'Hari', 'Jam Ke-', 'Mata Pelajaran', 'Guru', 'Tanggal Generate', 'Status'];
-  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
-  sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold').setBackground('#FF9800').setFontColor('white');
-}
-
-function setupSettingsSheet(ss) {
-  let sheet = ss.getSheetByName(CONFIG.SHEET_NAMES.SETTINGS);
-  if (!sheet) {
-    sheet = ss.insertSheet(CONFIG.SHEET_NAMES.SETTINGS);
-  }
-  
-  const headers = ['Key', 'Value', 'Description'];
-  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
-  sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold').setBackground('#607D8B').setFontColor('white');
-  
-  // Cek apakah sudah ada data
-  const existingData = sheet.getLastRow();
-  
-  const settings = [
-    ['admin_password', CONFIG.ADMIN_PASSWORD, 'Password admin'],
-    ['school_name', 'SD/MI Contoh', 'Nama Sekolah'],
-    ['academic_year', '2025/2026', 'Tahun Ajaran'],
-    ['dark_mode', 'false', 'Mode Gelap'],
-    ['last_generate', '', 'Terakhir Generate']
-  ];
-  
-  // Hanya insert jika belum ada data
-  if (existingData < 2) {
-    sheet.getRange(2, 1, settings.length, settings[0].length).setValues(settings);
-    Logger.log('Data settings inserted: ' + settings.length + ' rows');
-  } else {
-    Logger.log('Data settings sudah ada: ' + existingData + ' rows');
+    Logger.log('Error getDashboardStats: ' + e.toString());
+    return {
+      totalGuru: 0, totalKelas: 0, totalMapel: 0, totalJadwal: 0,
+      totalJamGuru: 0, guruKelas: 0, guruMapel: 0
+    };
   }
 }
 
 // ============================================================================
-// API - GURU
+// JADWAL GENERATION
 // ============================================================================
 
-/**
- * Mendapatkan semua data guru
- */
-function getGuruList() {
-  try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    let sheet = ss.getSheetByName(CONFIG.SHEET_NAMES.GURU);
-    
-    // Jika sheet belum ada, setup dulu
-    if (!sheet) {
-      Logger.log('Sheet Guru belum ada, melakukan setup...');
-      setupDatabase();
-      sheet = ss.getSheetByName(CONFIG.SHEET_NAMES.GURU);
-    }
-    
-    if (!sheet || sheet.getLastRow() < 2) {
-      Logger.log('Sheet Guru kosong atau tidak ada');
-      return [];
-    }
-    
-    const data = sheet.getDataRange().getValues();
-    Logger.log('Data Guru raw: ' + JSON.stringify(data));
-    
-    if (data.length < 2) {
-      return [];
-    }
-    
-    const headers = data.shift();
-    
-    const result = data.map(row => ({
-      id: row[0] || '',
-      nama: row[1] || '',
-      jenis: row[2] || '',
-      mapel: row[3] || '',
-      maxJam: row[4] || 24,
-      status: row[5] || 'Aktif',
-      createdAt: row[6] || new Date()
-    })).filter(g => g.id && g.nama);
-    
-    Logger.log('Data Guru processed: ' + result.length + ' items');
-    return result;
-  } catch (e) {
-    Logger.log('Error getGuruList: ' + e.toString());
-    return [];
-  }
-}
-
-/**
- * Simpan guru baru
- */
-function saveGuru(data) {
-  try {
-    const sheet = getOrCreateSheet(CONFIG.SHEET_NAMES.GURU);
-    const id = data.id || 'GURU' + String(new Date().getTime()).slice(-6);
-    
-    const rowData = [
-      id,
-      data.nama,
-      data.jenis,
-      data.mapel || 'Semua Mapel',
-      data.maxJam || 24,
-      data.status || 'Aktif',
-      new Date()
-    ];
-    
-    if (data.id) {
-      // Update
-      const range = sheet.createTextFinder(data.id).findAll();
-      if (range.length > 0) {
-        sheet.getRange(range[0].getRow() + 1, 1, 1, rowData.length).setValues([rowData]);
-      }
-    } else {
-      // Insert
-      sheet.appendRow(rowData);
-    }
-    
-    return { success: true, id: id, message: 'Data guru berhasil disimpan!' };
-  } catch (e) {
-    return { success: false, error: e.toString() };
-  }
-}
-
-/**
- * Hapus guru
- */
-function deleteGuru(id) {
-  try {
-    const sheet = getOrCreateSheet(CONFIG.SHEET_NAMES.GURU);
-    const range = sheet.createTextFinder(id).findAll();
-    
-    if (range.length > 0) {
-      sheet.deleteRow(range[0].getRow() + 1);
-      return { success: true, message: 'Data guru berhasil dihapus!' };
-    }
-    
-    return { success: false, error: 'Data tidak ditemukan' };
-  } catch (e) {
-    return { success: false, error: e.toString() };
-  }
-}
-
-// ============================================================================
-// API - KELAS
-// ============================================================================
-
-/**
- * Mendapatkan semua data kelas
- */
-function getKelasList() {
-  try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    let sheet = ss.getSheetByName(CONFIG.SHEET_NAMES.KELAS);
-    
-    // Jika sheet belum ada, setup dulu
-    if (!sheet) {
-      Logger.log('Sheet Kelas belum ada, melakukan setup...');
-      setupDatabase();
-      sheet = ss.getSheetByName(CONFIG.SHEET_NAMES.KELAS);
-    }
-    
-    if (!sheet || sheet.getLastRow() < 2) {
-      Logger.log('Sheet Kelas kosong atau tidak ada');
-      return [];
-    }
-    
-    const data = sheet.getDataRange().getValues();
-    
-    if (data.length < 2) {
-      return [];
-    }
-    
-    const headers = data.shift();
-    
-    const result = data.map(row => ({
-      id: row[0] || '',
-      nama: row[1] || '',
-      tingkat: row[2] || 1,
-      jamPerHari: row[3] || 6,
-      guruKelas: row[4] || '',
-      status: row[5] || 'Aktif',
-      createdAt: row[6] || new Date()
-    })).filter(k => k.id && k.nama);
-    
-    Logger.log('Data Kelas processed: ' + result.length + ' items');
-    return result;
-  } catch (e) {
-    Logger.log('Error getKelasList: ' + e.toString());
-    return [];
-  }
-}
-
-/**
- * Simpan kelas baru
- */
-function saveKelas(data) {
-  try {
-    const sheet = getOrCreateSheet(CONFIG.SHEET_NAMES.KELAS);
-    const id = data.id || 'KLS' + String(new Date().getTime()).slice(-6);
-    
-    const rowData = [
-      id,
-      data.nama,
-      data.tingkat,
-      data.jamPerHari || 6,
-      data.guruKelas || '',
-      data.status || 'Aktif',
-      new Date()
-    ];
-    
-    if (data.id) {
-      const range = sheet.createTextFinder(data.id).findAll();
-      if (range.length > 0) {
-        sheet.getRange(range[0].getRow() + 1, 1, 1, rowData.length).setValues([rowData]);
-      }
-    } else {
-      sheet.appendRow(rowData);
-    }
-    
-    return { success: true, id: id, message: 'Data kelas berhasil disimpan!' };
-  } catch (e) {
-    return { success: false, error: e.toString() };
-  }
-}
-
-/**
- * Hapus kelas
- */
-function deleteKelas(id) {
-  try {
-    const sheet = getOrCreateSheet(CONFIG.SHEET_NAMES.KELAS);
-    const range = sheet.createTextFinder(id).findAll();
-    
-    if (range.length > 0) {
-      sheet.deleteRow(range[0].getRow() + 1);
-      return { success: true, message: 'Data kelas berhasil dihapus!' };
-    }
-    
-    return { success: false, error: 'Data tidak ditemukan' };
-  } catch (e) {
-    return { success: false, error: e.toString() };
-  }
-}
-
-// ============================================================================
-// API - MAPEL
-// ============================================================================
-
-/**
- * Mendapatkan semua mata pelajaran
- */
-function getMapelList() {
-  try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    let sheet = ss.getSheetByName(CONFIG.SHEET_NAMES.MAPEL);
-    
-    // Jika sheet belum ada, setup dulu
-    if (!sheet) {
-      Logger.log('Sheet Mapel belum ada, melakukan setup...');
-      setupDatabase();
-      sheet = ss.getSheetByName(CONFIG.SHEET_NAMES.MAPEL);
-    }
-    
-    if (!sheet || sheet.getLastRow() < 2) {
-      Logger.log('Sheet Mapel kosong atau tidak ada');
-      return [];
-    }
-    
-    const data = sheet.getDataRange().getValues();
-    
-    if (data.length < 2) {
-      return [];
-    }
-    
-    const headers = data.shift();
-    
-    const result = data.map(row => ({
-      id: row[0] || '',
-      nama: row[1] || '',
-      jamKls13: row[2] || 0,
-      jamKls46: row[3] || 0,
-      kategori: row[4] || 'Guru Kelas',
-      warna: row[5] || '#4CAF50',
-      createdAt: row[6] || new Date()
-    })).filter(m => m.id && m.nama);
-    
-    Logger.log('Data Mapel processed: ' + result.length + ' items');
-    return result;
-  } catch (e) {
-    Logger.log('Error getMapelList: ' + e.toString());
-    return [];
-  }
-}
-
-/**
- * Simpan mata pelajaran
- */
-function saveMapel(data) {
-  try {
-    const sheet = getOrCreateSheet(CONFIG.SHEET_NAMES.MAPEL);
-    const id = data.id || 'MAPEL' + String(new Date().getTime()).slice(-6);
-    
-    const rowData = [
-      id,
-      data.nama,
-      data.jamKls13 || 0,
-      data.jamKls46 || 0,
-      data.kategori || 'Guru Kelas',
-      data.warna || '#4CAF50',
-      new Date()
-    ];
-    
-    if (data.id) {
-      const range = sheet.createTextFinder(data.id).findAll();
-      if (range.length > 0) {
-        sheet.getRange(range[0].getRow() + 1, 1, 1, rowData.length).setValues([rowData]);
-      }
-    } else {
-      sheet.appendRow(rowData);
-    }
-    
-    return { success: true, id: id, message: 'Data mapel berhasil disimpan!' };
-  } catch (e) {
-    return { success: false, error: e.toString() };
-  }
-}
-
-/**
- * Hapus mata pelajaran
- */
-function deleteMapel(id) {
-  try {
-    const sheet = getOrCreateSheet(CONFIG.SHEET_NAMES.MAPEL);
-    const range = sheet.createTextFinder(id).findAll();
-    
-    if (range.length > 0) {
-      sheet.deleteRow(range[0].getRow() + 1);
-      return { success: true, message: 'Data mapel berhasil dihapus!' };
-    }
-    
-    return { success: false, error: 'Data tidak ditemukan' };
-  } catch (e) {
-    return { success: false, error: e.toString() };
-  }
-}
-
-// ============================================================================
-// ALGORITMA GENERATE JADWAL
-// ============================================================================
-
-/**
- * Generate jadwal otomatis
- */
 function generateJadwal() {
   try {
-    const guruList = getGuruList();
-    const kelasList = getKelasList();
-    const mapelList = getMapelList();
+    const guruList = getDataGuru();
+    const kelasList = getDataKelas();
+    const mapelList = getDataMapel();
     
     if (guruList.length === 0 || kelasList.length === 0) {
       return { 
@@ -744,75 +582,68 @@ function generateJadwal() {
       };
     }
     
-    // Inisialisasi struktur jadwal
-    const jadwal = initializeJadwal(kelasList);
-    
-    // Track jam guru
-    const guruJamTracker = {};
-    guruList.forEach(g => {
-      guruJamTracker[g.id] = { current: 0, max: g.maxJam };
+    // Initialize jadwal structure
+    const jadwal = {};
+    kelasList.forEach(k => {
+      jadwal[k['ID']] = [];
     });
     
-    // Track jadwal guru per hari-jam
+    // Track guru jam
+    const guruJamTracker = {};
+    guruList.forEach(g => {
+      guruJamTracker[g['ID']] = { current: 0, max: g['Maksimal Jam/Minggu'] };
+    });
+    
+    // Track guru schedule
     const guruSchedule = {};
     
-    // Generate untuk setiap kelas
+    // Generate for each kelas
     kelasList.forEach(kelas => {
-      const tingkat = kelas.tingkat;
-      const jamPerHari = kelas.jamPerHari || 6;
+      const tingkat = kelas['Tingkat'];
+      const jamPerHari = kelas['Jumlah Jam/Hari'] || 6;
       
-      // Dapatkan mapel untuk tingkat ini
+      // Get mapel for this tingkat
       const mapelUntukKelas = getMapelUntukTingkat(mapelList, tingkat);
       
-      // Dapatkan guru kelas
+      // Get guru kelas
       const guruKelas = getGuruKelasUntukKelas(guruList, kelas);
       
-      // Generate jadwal per hari
+      // Generate per hari
       CONFIG.HARI.forEach(hari => {
         for (let jamKe = 1; jamKe <= jamPerHari; jamKe++) {
-          const slotKey = `${kelas.id}-${hari}-${jamKe}`;
-          
-          // Pilih mapel yang belum terpenuhi
+          // Find available mapel
           const mapelTersedia = mapelUntukKelas.filter(m => {
-            const assigned = jadwal[kelas.id].filter(s => s.mapel === m.nama).length;
+            const assigned = jadwal[kelas['ID']].filter(s => s.mapel === m.nama).length;
             return assigned < m.jamPerMinggu;
           });
           
           if (mapelTersedia.length === 0) return;
           
-          // Pilih guru untuk mapel ini
+          // Select guru
           const guru = pilihGuruUntukMapel(
-            guruKelas, 
-            guruList, 
-            mapelTersedia[0], 
-            guruJamTracker, 
-            guruSchedule, 
-            hari, 
-            jamKe
+            guruKelas, guruList, mapelTersedia[0], 
+            guruJamTracker, guruSchedule, hari, jamKe
           );
           
           if (guru) {
-            jadwal[kelas.id].push({
+            jadwal[kelas['ID']].push({
               hari: hari,
               jamKe: jamKe,
               mapel: mapelTersedia[0].nama,
-              guru: guru.nama,
-              guruId: guru.id,
+              guru: guru['Nama Guru'],
+              guruId: guru['ID'],
               warna: mapelTersedia[0].warna
             });
             
-            // Update tracker
-            guruJamTracker[guru.id].current++;
-            
-            // Mark slot guru sebagai occupied
-            const guruSlotKey = `${guru.id}-${hari}-${jamKe}`;
+            guruJamTracker[guru['ID']].current++;
+            const guruSlotKey = guru['ID'] + '-' + hari + '-' + jamKe;
             guruSchedule[guruSlotKey] = true;
           }
         }
       });
     });
     
-    // Simpan ke spreadsheet
+    // Save to spreadsheet
     simpanJadwalKeSpreadsheet(jadwal);
     
     // Update settings
@@ -830,96 +661,64 @@ function generateJadwal() {
   }
 }
 
-/**
- * Inisialisasi struktur jadwal
- */
-function initializeJadwal(kelasList) {
-  const jadwal = {};
-  kelasList.forEach(k => {
-    jadwal[k.id] = [];
-  });
-  return jadwal;
-}
-
-/**
- * Dapatkan mapel untuk tingkat tertentu
- */
 function getMapelUntukTingkat(mapelList, tingkat) {
   return mapelList.map(m => ({
-    ...m,
-    jamPerMinggu: tingkat <= 3 ? m.jamKls13 : m.jamKls46
+    nama: m['Mata Pelajaran'],
+    jamPerMinggu: tingkat <= 3 ? m['Jam/Minggu (Kls 1-3)'] : m['Jam/Minggu (Kls 4-6)'],
+    kategori: m['Kategori'],
+    warna: m['Warna']
   })).filter(m => m.jamPerMinggu > 0);
 }
 
-/**
- * Dapatkan guru kelas untuk kelas tertentu
- */
 function getGuruKelasUntukKelas(guruList, kelas) {
-  // Prioritaskan guru kelas
-  const guruKelasList = guruList.filter(g => g.jenis === 'Guru Kelas' && g.status === 'Aktif');
+  const guruKelasList = guruList.filter(g => g['Jenis Guru'] === 'Guru Kelas' && g['Status'] === 'Aktif');
   
-  // Jika kelas punya guru kelas spesifik
-  if (kelas.guruKelas) {
-    const specificGuru = guruKelasList.find(g => g.nama === kelas.guruKelas);
-    if (specificGuru) {
-      return [specificGuru];
-    }
+  if (kelas['Guru Kelas']) {
+    const specificGuru = guruKelasList.find(g => g['Nama Guru'] === kelas['Guru Kelas']);
+    if (specificGuru) return [specificGuru];
   }
   
   return guruKelasList;
 }
 
-/**
- * Pilih guru untuk mapel tertentu dengan menghindari bentrok
- */
 function pilihGuruUntukMapel(guruKelasList, allGuru, mapel, jamTracker, schedule, hari, jamKe) {
-  // Jika mapel untuk guru kelas
+  // If mapel for guru kelas
   if (mapel.kategori === 'Guru Kelas') {
-    // Cari guru kelas yang available
     for (const guru of guruKelasList) {
-      if (jamTracker[guru.id].current >= jamTracker[guru.id].max) continue;
-      
-      const slotKey = `${guru.id}-${hari}-${jamKe}`;
+      if (jamTracker[guru['ID']].current >= jamTracker[guru['ID']].max) continue;
+      const slotKey = guru['ID'] + '-' + hari + '-' + jamKe;
       if (schedule[slotKey]) continue;
-      
       return guru;
     }
   }
   
-  // Jika mapel untuk guru mapel
+  // If mapel for guru mapel
   const guruMapelList = allGuru.filter(g => 
-    g.jenis === 'Guru Mapel' && 
-    g.status === 'Aktif' &&
-    (g.mapel === mapel.nama || g.mapel === 'Semua Mapel')
+    g['Jenis Guru'] === 'Guru Mapel' && 
+    g['Status'] === 'Aktif' &&
+    (g['Mata Pelajaran'] === mapel.nama || g['Mata Pelajaran'] === 'Semua Mapel')
   );
   
   for (const guru of guruMapelList) {
-    if (jamTracker[guru.id].current >= jamTracker[guru.id].max) continue;
-    
-    const slotKey = `${guru.id}-${hari}-${jamKe}`;
+    if (jamTracker[guru['ID']].current >= jamTracker[guru['ID']].max) continue;
+    const slotKey = guru['ID'] + '-' + hari + '-' + jamKe;
     if (schedule[slotKey]) continue;
-    
     return guru;
   }
   
-  // Fallback ke guru kelas jika guru mapel tidak tersedia
+  // Fallback to guru kelas
   for (const guru of guruKelasList) {
-    if (jamTracker[guru.id].current >= jamTracker[guru.id].max) continue;
-    
-    const slotKey = `${guru.id}-${hari}-${jamKe}`;
+    if (jamTracker[guru['ID']].current >= jamTracker[guru['ID']].max) continue;
+    const slotKey = guru['ID'] + '-' + hari + '-' + jamKe;
     if (schedule[slotKey]) continue;
-    
     return guru;
   }
   
   return null;
 }
 
-/**
- * Simpan jadwal ke spreadsheet
- */
 function simpanJadwalKeSpreadsheet(jadwal) {
-  const sheet = getOrCreateSheet(CONFIG.SHEET_NAMES.HASIL);
+  const sheet = getSheet(CONFIG.SHEET_NAMES.HASIL);
   
   // Clear existing data (keep header)
   if (sheet.getLastRow() > 1) {
@@ -949,9 +748,6 @@ function simpanJadwalKeSpreadsheet(jadwal) {
   }
 }
 
-/**
- * Dapatkan statistik jadwal
- */
 function getJadwalStats(jadwal, kelasList) {
   let totalSlots = 0;
   const guruStats = {};
@@ -959,67 +755,20 @@ function getJadwalStats(jadwal, kelasList) {
   Object.keys(jadwal).forEach(kelasId => {
     totalSlots += jadwal[kelasId].length;
     jadwal[kelasId].forEach(slot => {
-      if (!guruStats[slot.guru]) {
-        guruStats[slot.guru] = 0;
-      }
+      if (!guruStats[slot.guru]) guruStats[slot.guru] = 0;
       guruStats[slot.guru]++;
     });
   });
   
-  return {
-    totalSlots: totalSlots,
-    totalKelas: kelasList.length,
-    guruStats: guruStats
-  };
+  return { totalSlots, totalKelas: kelasList.length, guruStats };
 }
 
-// ============================================================================
-// API - HASIL JADWAL
-// ============================================================================
-
-/**
- * Dapatkan jadwal yang sudah digenerate
- */
-function getJadwal(kelasId = null, guruId = null) {
-  try {
-    const sheet = getOrCreateSheet(CONFIG.SHEET_NAMES.HASIL);
-    const data = sheet.getDataRange().getValues();
-    const headers = data.shift();
-    
-    let result = data.map(row => ({
-      id: row[0],
-      kelas: row[1],
-      hari: row[2],
-      jamKe: row[3],
-      mapel: row[4],
-      guru: row[5],
-      tanggalGenerate: row[6],
-      status: row[7]
-    })).filter(j => j.id && j.status === 'Aktif');
-    
-    // Filter jika ada parameter
-    if (kelasId) {
-      result = result.filter(j => j.kelas === kelasId);
-    }
-    
-    return result;
-  } catch (e) {
-    Logger.log('Error getJadwal: ' + e.toString());
-    return [];
-  }
-}
-
-/**
- * Reset jadwal
- */
 function resetJadwal() {
   try {
-    const sheet = getOrCreateSheet(CONFIG.SHEET_NAMES.HASIL);
-    
+    const sheet = getSheet(CONFIG.SHEET_NAMES.HASIL);
     if (sheet.getLastRow() > 1) {
       sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).clearContent();
     }
-    
     return { success: true, message: 'Jadwal berhasil direset!' };
   } catch (e) {
     return { success: false, error: e.toString() };
@@ -1027,157 +776,112 @@ function resetJadwal() {
 }
 
 // ============================================================================
-// DASHBOARD & STATISTIK
+// FORCE INSERT SAMPLE DATA (for troubleshooting)
 // ============================================================================
 
-/**
- * Dapatkan statistik dashboard
- */
-function getDashboardStats() {
-  try {
-    const guruList = getGuruList();
-    const kelasList = getKelasList();
-    const mapelList = getMapelList();
-    const jadwalList = getJadwal();
-    
-    Logger.log('Dashboard stats - Guru: ' + guruList.length + ', Kelas: ' + kelasList.length + ', Mapel: ' + mapelList.length + ', Jadwal: ' + jadwalList.length);
-    
-    // Hitung total jam guru
-    let totalJamGuru = 0;
-    guruList.forEach(g => {
-      const jamCount = jadwalList.filter(j => j.guru === g.nama).length;
-      totalJamGuru += jamCount;
-    });
-    
-    return {
-      totalGuru: guruList.length,
-      totalKelas: kelasList.length,
-      totalMapel: mapelList.length,
-      totalJadwal: jadwalList.length,
-      totalJamGuru: totalJamGuru,
-      guruKelas: guruList.filter(g => g.jenis === 'Guru Kelas').length,
-      guruMapel: guruList.filter(g => g.jenis === 'Guru Mapel').length
-    };
-  } catch (e) {
-    Logger.log('Error getDashboardStats: ' + e.toString());
-    return {
-      totalGuru: 0,
-      totalKelas: 0,
-      totalMapel: 0,
-      totalJadwal: 0,
-      totalJamGuru: 0,
-      guruKelas: 0,
-      guruMapel: 0
-    };
-  }
-}
-
-// ============================================================================
-// SETTINGS & AUTH
-// ============================================================================
-
-/**
- * Login admin
- */
-function loginAdmin(password) {
-  const storedPassword = getSetting('admin_password', CONFIG.ADMIN_PASSWORD);
+function forceInsertSampleData() {
+  Logger.log('=== Starting forceInsertSampleData ===');
+  const ss = getSS();
   
-  if (password === storedPassword) {
-    return { success: true, message: 'Login berhasil!' };
-  }
+  // Force insert Guru
+  let guruSheet = ss.getSheetByName(CONFIG.SHEET_NAMES.GURU);
+  if (!guruSheet) guruSheet = ss.insertSheet(CONFIG.SHEET_NAMES.GURU);
+  if (guruSheet.getLastRow() > 0) guruSheet.clear();
   
-  return { success: false, error: 'Password salah!' };
-}
-
-/**
- * Dapatkan setting
- */
-function getSetting(key, defaultValue = '') {
-  try {
-    const sheet = getOrCreateSheet(CONFIG.SHEET_NAMES.SETTINGS);
-    const data = sheet.getDataRange().getValues();
-    
-    for (let i = 1; i < data.length; i++) {
-      if (data[i][0] === key) {
-        return data[i][1];
-      }
-    }
-    
-    return defaultValue;
-  } catch (e) {
-    return defaultValue;
-  }
-}
-
-/**
- * Update setting
- */
-function updateSetting(key, value) {
-  try {
-    const sheet = getOrCreateSheet(CONFIG.SHEET_NAMES.SETTINGS);
-    const data = sheet.getDataRange().getValues();
-    
-    for (let i = 1; i < data.length; i++) {
-      if (data[i][0] === key) {
-        sheet.getRange(i + 1, 2).setValue(value);
-        return { success: true };
-      }
-    }
-    
-    // Jika tidak ada, tambahkan baru
-    sheet.appendRow([key, value, '']);
-    return { success: true };
-  } catch (e) {
-    return { success: false, error: e.toString() };
-  }
-}
-
-/**
- * Dapatkan semua settings
- */
-function getAllSettings() {
-  try {
-    const sheet = getOrCreateSheet(CONFIG.SHEET_NAMES.SETTINGS);
-    const data = sheet.getDataRange().getValues();
-    const headers = data.shift();
-    
-    const settings = {};
-    data.forEach(row => {
-      if (row[0]) {
-        settings[row[0]] = row[1];
-      }
-    });
-    
-    return settings;
-  } catch (e) {
-    return {};
-  }
-}
-
-// ============================================================================
-// UTILITIES
-// ============================================================================
-
-/**
- * Format tanggal untuk display
- */
-function formatDate(date) {
-  if (!date) return '';
-  const d = new Date(date);
-  return d.toLocaleDateString('id-ID', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
-}
-
-/**
- * Health check
- */
-function healthCheck() {
-  return {
-    status: 'OK',
-    timestamp: new Date().toISOString(),
-    version: '1.0.0'
+  const guruHeaders = ['ID', 'Nama Guru', 'Jenis Guru', 'Mata Pelajaran', 'Maksimal Jam/Minggu', 'Status', 'Created At'];
+  guruSheet.getRange(1, 1, 1, guruHeaders.length).setValues([guruHeaders]);
+  guruSheet.getRange(1, 1, 1, guruHeaders.length).setFontWeight('bold').setBackground('#4CAF50').setFontColor('white');
+  
+  const guruData = [
+    ['GURU001', 'Ahmad Fauzi', 'Guru Kelas', 'Semua Mapel', 24, 'Aktif', new Date()],
+    ['GURU002', 'Siti Nurhaliza', 'Guru Kelas', 'Semua Mapel', 24, 'Aktif', new Date()],
+    ['GURU003', 'Budi Santoso', 'Guru Mapel', 'PJOK', 18, 'Aktif', new Date()],
+    ['GURU004', 'Fatimah Zahra', 'Guru Mapel', 'Bahasa Inggris', 18, 'Aktif', new Date()],
+    ['GURU005', 'Umar Abdullah', 'Guru Mapel', 'PAI', 18, 'Aktif', new Date()],
+    ['GURU006', 'Aisyah Putri', 'Guru Mapel', 'SBdP', 18, 'Aktif', new Date()]
+  ];
+  guruSheet.getRange(2, 1, guruData.length, guruData[0].length).setValues(guruData);
+  Logger.log('Guru data inserted: ' + guruData.length + ' rows');
+  
+  // Force insert Kelas
+  let kelasSheet = ss.getSheetByName(CONFIG.SHEET_NAMES.KELAS);
+  if (!kelasSheet) kelasSheet = ss.insertSheet(CONFIG.SHEET_NAMES.KELAS);
+  if (kelasSheet.getLastRow() > 0) kelasSheet.clear();
+  
+  const kelasHeaders = ['ID', 'Nama Kelas', 'Tingkat', 'Jumlah Jam/Hari', 'Guru Kelas', 'Status', 'Created At'];
+  kelasSheet.getRange(1, 1, 1, kelasHeaders.length).setValues([kelasHeaders]);
+  kelasSheet.getRange(1, 1, 1, kelasHeaders.length).setFontWeight('bold').setBackground('#2196F3').setFontColor('white');
+  
+  const kelasData = generateKelasSampleData();
+  kelasSheet.getRange(2, 1, kelasData.length, kelasData[0].length).setValues(kelasData);
+  Logger.log('Kelas data inserted: ' + kelasData.length + ' rows');
+  
+  // Force insert Mapel
+  let mapelSheet = ss.getSheetByName(CONFIG.SHEET_NAMES.MAPEL);
+  if (!mapelSheet) mapelSheet = ss.insertSheet(CONFIG.SHEET_NAMES.MAPEL);
+  if (mapelSheet.getLastRow() > 0) mapelSheet.clear();
+  
+  const mapelHeaders = ['ID', 'Mata Pelajaran', 'Jam/Minggu (Kls 1-3)', 'Jam/Minggu (Kls 4-6)', 'Kategori', 'Warna', 'Created At'];
+  mapelSheet.getRange(1, 1, 1, mapelHeaders.length).setValues([mapelHeaders]);
+  mapelSheet.getRange(1, 1, 1, mapelHeaders.length).setFontWeight('bold').setBackground('#9C27B0').setFontColor('white');
+  
+  const mapelData = [
+    ['MAPEL001', 'PKn', 4, 3, 'Guru Kelas', '#FFB74D', new Date()],
+    ['MAPEL002', 'Bahasa Indonesia', 8, 7, 'Guru Kelas', '#64B5F6', new Date()],
+    ['MAPEL003', 'Matematika', 5, 5, 'Guru Kelas', '#81C784', new Date()],
+    ['MAPEL004', 'IPA', 0, 4, 'Guru Kelas', '#4DB6AC', new Date()],
+    ['MAPEL005', 'IPS', 0, 3, 'Guru Kelas', '#A1887F', new Date()],
+    ['MAPEL006', 'PJOK', 3, 3, 'Guru Mapel', '#E57373', new Date()],
+    ['MAPEL007', 'Bahasa Inggris', 2, 2, 'Guru Mapel', '#BA68C8', new Date()],
+    ['MAPEL008', 'PAI', 4, 4, 'Guru Mapel', '#4CAF50', new Date()],
+    ['MAPEL009', 'SBdP', 3, 3, 'Guru Mapel', '#F06292', new Date()],
+    ['MAPEL010', 'Tematik', 10, 0, 'Guru Kelas', '#FFF176', new Date()]
+  ];
+  mapelSheet.getRange(2, 1, mapelData.length, mapelData[0].length).setValues(mapelData);
+  Logger.log('Mapel data inserted: ' + mapelData.length + ' rows');
+  
+  Logger.log('=== forceInsertSampleData completed ===');
+  return { 
+    success: true, 
+    message: 'Data sample berhasil di-insert!',
+    guruCount: guruData.length,
+    kelasCount: kelasData.length,
+    mapelCount: mapelData.length
   };
+}
+
+/**
+ * Test database connection
+ */
+function testDataConnection() {
+  try {
+    const ss = getSS();
+    const sheets = ss.getSheets();
+    const sheetNames = sheets.map(s => s.getName());
+    
+    const result = {
+      spreadsheetName: ss.getName(),
+      sheetNames: sheetNames,
+      guruSheetExists: sheetNames.includes(CONFIG.SHEET_NAMES.GURU),
+      kelasSheetExists: sheetNames.includes(CONFIG.SHEET_NAMES.KELAS),
+      mapelSheetExists: sheetNames.includes(CONFIG.SHEET_NAMES.MAPEL)
+    };
+    
+    if (result.guruSheetExists) {
+      const guruSheet = ss.getSheetByName(CONFIG.SHEET_NAMES.GURU);
+      result.guruRowCount = guruSheet.getLastRow();
+    }
+    if (result.kelasSheetExists) {
+      const kelasSheet = ss.getSheetByName(CONFIG.SHEET_NAMES.KELAS);
+      result.kelasRowCount = kelasSheet.getLastRow();
+    }
+    if (result.mapelSheetExists) {
+      const mapelSheet = ss.getSheetByName(CONFIG.SHEET_NAMES.MAPEL);
+      result.mapelRowCount = mapelSheet.getLastRow();
+    }
+    
+    return result;
+  } catch (e) {
+    return { error: e.toString() };
+  }
 }
