@@ -1689,8 +1689,18 @@
     // ============================================================================
     // DATA LOADING
     // ============================================================================
+    let loadingTimeout = null;
+    
     function loadAllData() {
       showLoading('Memuat data...');
+      
+      // Set timeout untuk mencegah loading selamanya
+      if (loadingTimeout) clearTimeout(loadingTimeout);
+      loadingTimeout = setTimeout(function() {
+        console.warn('Loading timeout - forcing hide');
+        hideLoading();
+        showToast('Loading timeout, silakan refresh halaman', 'warning');
+      }, 30000); // 30 detik timeout
       
       // Load semua data secara berurutan
       loadDashboardStats();
@@ -1730,8 +1740,17 @@
      */
     function refreshGuruData() {
       showLoading('Memuat ulang data guru...');
+      
+      // Set timeout
+      if (loadingTimeout) clearTimeout(loadingTimeout);
+      loadingTimeout = setTimeout(function() {
+        hideLoading();
+        showToast('Loading timeout', 'warning');
+      }, 15000);
+      
       google.script.run
         .withSuccessHandler(function(data) {
+          if (loadingTimeout) clearTimeout(loadingTimeout);
           hideLoading();
           guruList = data || [];
           console.log('Guru refreshed:', guruList.length);
@@ -1739,20 +1758,30 @@
           showToast('Data guru berhasil dimuat ulang!', 'success');
         })
         .withFailureHandler(function(error) {
+          if (loadingTimeout) clearTimeout(loadingTimeout);
           hideLoading();
           console.error('Error refreshing guru:', error);
           showToast('Gagal memuat data guru: ' + error, 'error');
         })
-        .getGuruList();
+        .getDataGuru();
     }
-    
+
     /**
      * Refresh kelas data from server (called from button)
      */
     function refreshKelasData() {
       showLoading('Memuat ulang data kelas...');
+      
+      // Set timeout
+      if (loadingTimeout) clearTimeout(loadingTimeout);
+      loadingTimeout = setTimeout(function() {
+        hideLoading();
+        showToast('Loading timeout', 'warning');
+      }, 15000);
+      
       google.script.run
         .withSuccessHandler(function(data) {
+          if (loadingTimeout) clearTimeout(loadingTimeout);
           hideLoading();
           kelasList = data || [];
           console.log('Kelas refreshed:', kelasList.length);
@@ -1761,20 +1790,30 @@
           showToast('Data kelas berhasil dimuat ulang!', 'success');
         })
         .withFailureHandler(function(error) {
+          if (loadingTimeout) clearTimeout(loadingTimeout);
           hideLoading();
           console.error('Error refreshing kelas:', error);
           showToast('Gagal memuat data kelas: ' + error, 'error');
         })
-        .getKelasList();
+        .getDataKelas();
     }
-    
+
     /**
      * Refresh mapel data from server (called from button)
      */
     function refreshMapelData() {
       showLoading('Memuat ulang data mapel...');
+      
+      // Set timeout
+      if (loadingTimeout) clearTimeout(loadingTimeout);
+      loadingTimeout = setTimeout(function() {
+        hideLoading();
+        showToast('Loading timeout', 'warning');
+      }, 15000);
+      
       google.script.run
         .withSuccessHandler(function(data) {
+          if (loadingTimeout) clearTimeout(loadingTimeout);
           hideLoading();
           mapelList = data || [];
           console.log('Mapel refreshed:', mapelList.length);
@@ -1782,11 +1821,12 @@
           showToast('Data mapel berhasil dimuat ulang!', 'success');
         })
         .withFailureHandler(function(error) {
+          if (loadingTimeout) clearTimeout(loadingTimeout);
           hideLoading();
           console.error('Error refreshing mapel:', error);
           showToast('Gagal memuat data mapel: ' + error, 'error');
         })
-        .getMapelList();
+        .getDataMapel();
     }
     
     function loadKelasData() {
@@ -1831,7 +1871,11 @@
           jadwalList = data || [];
           console.log('Jadwal loaded:', jadwalList.length);
           isDataLoaded = true;
+          
+          // Clear timeout dan hide loading
+          if (loadingTimeout) clearTimeout(loadingTimeout);
           hideLoading();
+          
           // Refresh jadwal view jika sedang di halaman jadwal
           if (document.getElementById('page-jadwal').classList.contains('active')) {
             renderJadwal();
@@ -1841,6 +1885,9 @@
           console.error('Error loading jadwal:', error);
           jadwalList = [];
           isDataLoaded = true;
+          
+          // Clear timeout dan hide loading
+          if (loadingTimeout) clearTimeout(loadingTimeout);
           hideLoading();
         })
         .getJadwal();

@@ -278,20 +278,33 @@ function getRows(sheetName) {
  * Get all data as object array
  */
 function getAllData(sheetName) {
-  const sheet = getSheet(sheetName);
-  const vals = sheet.getDataRange().getValues();
-  if (vals.length <= 1) return [];
-  
-  const headers = vals[0];
-  return vals.slice(1).map((row, i) => {
-    const obj = { rowIndex: i + 2 };
-    headers.forEach((h, idx) => {
-      obj[h] = row[idx] instanceof Date 
-        ? Utilities.formatDate(row[idx], Session.getScriptTimeZone(), 'dd-MM-yyyy HH:mm') 
-        : row[idx];
+  try {
+    const ss = getSS();
+    const sheet = ss.getSheetByName(sheetName);
+    
+    // Jika sheet tidak ada, return empty array
+    if (!sheet) {
+      Logger.log('Sheet ' + sheetName + ' tidak ada');
+      return [];
+    }
+    
+    const vals = sheet.getDataRange().getValues();
+    if (vals.length <= 1) return [];
+
+    const headers = vals[0];
+    return vals.slice(1).map((row, i) => {
+      const obj = { rowIndex: i + 2 };
+      headers.forEach((h, idx) => {
+        obj[h] = row[idx] instanceof Date
+          ? Utilities.formatDate(row[idx], Session.getScriptTimeZone(), 'dd-MM-yyyy HH:mm')
+          : row[idx];
+      });
+      return obj;
     });
-    return obj;
-  });
+  } catch(e) {
+    Logger.log('Error getAllData (' + sheetName + '): ' + e.toString());
+    return []; // Return empty array on error
+  }
 }
 
 /**
@@ -299,9 +312,12 @@ function getAllData(sheetName) {
  */
 function getDataGuru() {
   try {
-    return getAllData(CONFIG.SHEET_NAMES.GURU);
+    const data = getAllData(CONFIG.SHEET_NAMES.GURU);
+    Logger.log('getDataGuru success: ' + data.length + ' rows');
+    return data;
   } catch(e) {
     Logger.log('Error getDataGuru: ' + e.toString());
+    // Return empty array instead of throwing error
     return [];
   }
 }
@@ -311,7 +327,9 @@ function getDataGuru() {
  */
 function getDataKelas() {
   try {
-    return getAllData(CONFIG.SHEET_NAMES.KELAS);
+    const data = getAllData(CONFIG.SHEET_NAMES.KELAS);
+    Logger.log('getDataKelas success: ' + data.length + ' rows');
+    return data;
   } catch(e) {
     Logger.log('Error getDataKelas: ' + e.toString());
     return [];
@@ -323,7 +341,9 @@ function getDataKelas() {
  */
 function getDataMapel() {
   try {
-    return getAllData(CONFIG.SHEET_NAMES.MAPEL);
+    const data = getAllData(CONFIG.SHEET_NAMES.MAPEL);
+    Logger.log('getDataMapel success: ' + data.length + ' rows');
+    return data;
   } catch(e) {
     Logger.log('Error getDataMapel: ' + e.toString());
     return [];
@@ -335,7 +355,9 @@ function getDataMapel() {
  */
 function getDataJadwal() {
   try {
-    return getAllData(CONFIG.SHEET_NAMES.HASIL);
+    const data = getAllData(CONFIG.SHEET_NAMES.HASIL);
+    Logger.log('getDataJadwal success: ' + data.length + ' rows');
+    return data;
   } catch(e) {
     Logger.log('Error getDataJadwal: ' + e.toString());
     return [];
